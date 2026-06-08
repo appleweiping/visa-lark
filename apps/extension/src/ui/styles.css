@@ -1,0 +1,99 @@
+:root {
+  --bg: #fbfaf7;
+  --card: #ffffff;
+  --ink: #2c2a33;
+  --muted: #8a8694;
+  --line: #ece8e1;
+  --accent: #6b8cff; /* lark sky blue */
+  --accent-2: #ffb4c8; /* soft pink */
+  --ok: #2fae6a;
+  --warn: #d98a1f;
+  --err: #d6455a;
+  --radius: 14px;
+  --shadow: 0 2px 14px rgba(60, 50, 80, 0.08);
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1820;
+    --card: #232029;
+    --ink: #ece9f0;
+    --muted: #9b96a7;
+    --line: #322e3b;
+    --shadow: 0 2px 14px rgba(0, 0, 0, 0.3);
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); line-height: 1.5; }
+.zh { color: var(--accent); font-weight: 700; }
+.muted { color: var(--muted); font-size: 0.85em; }
+.hint { color: var(--muted); font-size: 0.85em; margin: 6px 0; }
+code { background: var(--line); padding: 1px 6px; border-radius: 6px; font-size: 0.9em; }
+
+/* Buttons */
+.btn {
+  background: var(--card); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 10px; padding: 8px 14px; cursor: pointer; font-size: 0.9rem;
+  transition: transform 0.08s ease, box-shadow 0.15s ease;
+}
+.btn:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+.btn-primary { background: var(--accent); color: #fff; border-color: transparent; }
+.btn-danger { background: var(--err); color: #fff; border-color: transparent; }
+.link { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 0.82rem; padding: 2px 6px; }
+
+/* Badges */
+.badge { padding: 3px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; }
+.badge-ok { background: rgba(47,174,106,0.15); color: var(--ok); }
+.badge-warn { background: rgba(217,138,31,0.15); color: var(--warn); }
+.badge-err { background: rgba(214,69,90,0.15); color: var(--err); }
+.badge-unknown { background: var(--line); color: var(--muted); }
+.ok-tag { color: var(--ok); font-size: 0.78rem; }
+
+/* ---- POPUP ---- */
+.popup { width: 360px; padding: 12px; }
+.topbar { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+.topbar .logo { width: 42px; height: 42px; border-radius: 12px; }
+.topbar h1 { font-size: 1.1rem; margin: 0; }
+.tagline { font-size: 0.74rem; color: var(--muted); margin: 2px 0 0; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; margin-bottom: 10px; box-shadow: var(--shadow); }
+.row { display: flex; justify-content: space-between; align-items: center; }
+.label { font-weight: 600; font-size: 0.9rem; }
+.monitor-list, .log-list { list-style: none; padding: 0; margin: 8px 0; }
+.monitor-item { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 0.85rem; }
+.mi-label { flex: 1; }
+.mi-mode { font-size: 0.72rem; padding: 1px 7px; border-radius: 6px; background: var(--line); }
+.mode-auto { background: rgba(214,69,90,0.15); color: var(--err); }
+.mode-confirm { background: rgba(107,140,255,0.15); color: var(--accent); }
+.mi-state.on { color: var(--ok); } .mi-state.off { color: var(--muted); }
+.log-list li { font-size: 0.76rem; padding: 3px 0; border-bottom: 1px dashed var(--line); display: flex; gap: 6px; }
+.log-list .lt { color: var(--muted); } .log-list .ln { color: var(--ink); opacity: 0.8; }
+.lo { font-weight: 600; } .lo-ok { color: var(--ok); } .lo-challenge, .lo-banned { color: var(--err); } .lo-empty { color: var(--muted); }
+.footer { display: flex; justify-content: space-between; align-items: center; padding-top: 4px; }
+
+/* ---- OPTIONS ---- */
+.options .container { max-width: 760px; margin: 0 auto; padding: 28px 20px 60px; }
+.page-head h1 { margin: 0 0 4px; }
+.tabs { display: flex; gap: 6px; margin: 18px 0; border-bottom: 2px solid var(--line); }
+.tab { background: none; border: none; padding: 10px 16px; cursor: pointer; color: var(--muted); font-weight: 600; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.panel { display: none; }
+.panel.active { display: block; animation: fade 0.2s ease; }
+@keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+.callout { background: rgba(107,140,255,0.08); border-left: 3px solid var(--accent); padding: 12px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 0.88rem; }
+.callout-warn { background: rgba(217,138,31,0.1); border-left-color: var(--warn); }
+.editor-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin: 12px 0; box-shadow: var(--shadow); }
+.editor-card input, .editor-card select, .field input, .add-channel select { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font-size: 0.9rem; }
+.ed-label { width: 100%; margin-bottom: 10px; font-size: 1rem; }
+.ed-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 10px 0; }
+.ed-facilities { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.fac { font-size: 0.82rem; display: flex; align-items: center; gap: 4px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; }
+.ed-actions { display: flex; gap: 8px; margin-top: 12px; }
+.field { display: flex; flex-direction: column; gap: 4px; margin: 14px 0; max-width: 420px; }
+.field span { font-weight: 600; font-size: 0.88rem; }
+.field small { color: var(--muted); }
+.check { display: flex; align-items: center; gap: 8px; margin: 12px 0; font-size: 0.9rem; }
+.mrow { display: grid; grid-template-columns: 1.4fr 0.8fr 0.7fr auto auto auto auto auto; gap: 8px; align-items: center; padding: 10px; border-bottom: 1px solid var(--line); font-size: 0.85rem; }
+.channel-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px; border: 1px solid var(--line); border-radius: 10px; margin: 8px 0; }
+.add-channel { display: flex; gap: 8px; margin: 12px 0; }
+.danger-zone { margin-top: 30px; padding: 16px; border: 1px dashed var(--err); border-radius: var(--radius); }
+h3 { margin-top: 24px; }

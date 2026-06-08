@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+.turbo/
+.next/
+out/
+
+# Extension build
+apps/extension/dist/
+apps/extension/.output/
+
+# Env & secrets — NEVER commit
+.env
+.env.*
+!.env.example
+*.local
+
+# SQLite data (user data, never commit)
+*.sqlite
+*.sqlite3
+*.db
+data/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+
+# Test coverage
+coverage/

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VisaLark 云雀</title>
+    <link rel="stylesheet" href="src/ui/styles.css" />
+  </head>
+  <body class="popup">
+    <header class="topbar">
+      <img src="icons/icon48.png" alt="VisaLark mascot" class="logo" />
+      <div>
+        <h1>VisaLark <span class="zh">云雀</span></h1>
+        <p class="tagline">账号安全的美签监控 · 不存密码 · 不绕验证</p>
+      </div>
+    </header>
+
+    <section id="session-status" class="card">
+      <div class="row">
+        <span class="label">会话状态 Session</span>
+        <span id="session-badge" class="badge badge-unknown">未检测</span>
+      </div>
+      <p class="hint" id="session-hint">
+        先在浏览器登录签证网站，然后点击下方“同步当前会话”。
+      </p>
+      <button id="sync-session" class="btn btn-primary">同步当前会话 Sync session</button>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <span class="label">监控 Monitors</span>
+        <span id="monitor-count" class="muted">0</span>
+      </div>
+      <ul id="monitor-list" class="monitor-list"></ul>
+      <button id="open-options" class="btn">管理监控 / 设置 Settings</button>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <span class="label">最近活动 Recent</span>
+        <button id="refresh-logs" class="link">刷新</button>
+      </div>
+      <ul id="log-list" class="log-list"></ul>
+    </section>
+
+    <footer class="footer">
+      <span class="muted">v0.1.0</span>
+      <a href="#" id="open-docs" class="link">文档 / 安全说明</a>
+    </footer>
+
+    <script type="module" src="src/ui/popup.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,37 @@
+{
+  "session": {
+    "cookie": "_yatri_session=PASTE_FROM_YOUR_LOGGED_IN_BROSER; other_cookies=...",
+    "embassyCode": "en-cn",
+    "scheduleId": "0000000",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+  },
+  "currentAppointment": { "date": "2026-12-01", "facilityId": "95" },
+  "monitors": [
+    {
+      "id": "beijing-b1b2",
+      "label": "北京 B1/B2 早于12月",
+      "facilityIds": ["95", "98"],
+      "visaType": "B1/B2",
+      "dateMax": "2026-12-01",
+      "dowFilter": [],
+      "expedite": false,
+      "mode": "notify",
+      "pollProfile": "patient",
+      "enabled": true
+    }
+  ],
+  "channels": [
+    { "type": "bark", "key": "YOUR_BARK_KEY" },
+    { "type": "serverchan", "sendKey": "YOUR_SERVERCHAN_SENDKEY" }
+  ],
+  "autoBook": {
+    "minImprovementDays": 7,
+    "allowedFacilityIds": ["95"],
+    "confirmFirstN": 1,
+    "perDayCap": 2,
+    "killSwitch": false,
+    "dryRun": false
+  },
+  "allowDatacenterIp": false,
+  "stateFile": "./visalark.state.json"
+}

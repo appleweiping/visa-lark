@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VisaLark 设置</title>
+    <link rel="stylesheet" href="src/ui/styles.css" />
+  </head>
+  <body class="options">
+    <div class="container">
+      <header class="page-head">
+        <h1>VisaLark <span class="zh">云雀</span> · 设置</h1>
+        <p class="tagline">
+          账号安全优先：本扩展只复用你浏览器里已登录的会话，<strong>从不存储密码</strong>，<strong>从不绕过验证码</strong>。
+          它不是“秒抢”工具，而是帮你抓住本会错过的可约位。
+        </p>
+      </header>
+
+      <nav class="tabs">
+        <button class="tab active" data-tab="monitors">监控 Monitors</button>
+        <button class="tab" data-tab="notify">通知 Notifications</button>
+        <button class="tab" data-tab="autobook">自动预约 Auto-book</button>
+        <button class="tab" data-tab="advanced">高级 Advanced</button>
+      </nav>
+
+      <!-- MONITORS -->
+      <section class="panel active" data-panel="monitors">
+        <div class="callout">
+          先在浏览器登录 <code>ais.usvisa-info.com</code> 的预约/改期页面，
+          点扩展弹窗里的“同步当前会话”。然后在这里添加监控。
+        </div>
+        <div id="monitor-editor" class="editor"></div>
+        <button id="add-monitor" class="btn btn-primary">+ 添加监控</button>
+        <h3>已有监控</h3>
+        <div id="monitors-table"></div>
+      </section>
+
+      <!-- NOTIFY -->
+      <section class="panel" data-panel="notify">
+        <p class="hint">
+          建议至少配置一个国内可达渠道（Bark 或 Server酱/微信）。Telegram 在大陆需代理。
+          高优先级（发现可约位）会同时推送到所有渠道，避免漏掉。
+        </p>
+        <div id="channels-list"></div>
+        <div class="add-channel">
+          <select id="channel-type">
+            <option value="bark">Bark (iOS)</option>
+            <option value="serverchan">Server酱 (微信)</option>
+            <option value="telegram">Telegram</option>
+            <option value="webhook">Webhook (企业微信/Discord)</option>
+          </select>
+          <button id="add-channel" class="btn">+ 添加渠道</button>
+        </div>
+        <label class="check">
+          <input type="checkbox" id="browser-notifications" />
+          同时显示浏览器原生通知（零配置，本地即时）
+        </label>
+        <button id="test-notify" class="btn">发送测试通知</button>
+      </section>
+
+      <!-- AUTOBOOK -->
+      <section class="panel" data-panel="autobook">
+        <div class="callout callout-warn">
+          ⚠️ 自动预约会<strong>替换你现有的面签预约</strong>（改期是破坏性操作）。
+          默认关闭，并受多重安全锁保护：只换更早的位、只去你允许的领区、前 N 次需人工确认、
+          每日上限、总开关。建议先用“一键确认”模式。
+        </div>
+        <label class="field">
+          <span>当前预约日期 Current appointment date</span>
+          <input type="date" id="cur-date" />
+          <small>自动预约的安全锁需要它来判断“是否更早”。手动填写，我们不替你抓取。</small>
+        </label>
+        <label class="field">
+          <span>最小提前天数 Min improvement (days)</span>
+          <input type="number" id="min-improve" min="1" value="7" />
+        </label>
+        <label class="field">
+          <span>允许自动改去的领区（逗号分隔 facility id）</span>
+          <input type="text" id="allow-facilities" placeholder="95,98" />
+        </label>
+        <label class="field">
+          <span>前几次预约需人工确认 Confirm first N</span>
+          <input type="number" id="confirm-first-n" min="0" value="1" />
+        </label>
+        <label class="field">
+          <span>每日自动预约上限 Per-day cap</span>
+          <input type="number" id="per-day-cap" min="1" value="2" />
+        </label>
+        <label class="check">
+          <input type="checkbox" id="dry-run" />
+          演练模式 Dry-run（评估但不真正提交）
+        </label>
+        <label class="check">
+          <input type="checkbox" id="kill-switch" />
+          🔴 总开关：禁止任何自动预约 Kill switch
+        </label>
+        <button id="save-autobook" class="btn btn-primary">保存 Save</button>
+      </section>
+
+      <!-- ADVANCED -->
+      <section class="panel" data-panel="advanced">
+        <label class="field">
+          <span>可选：控制面板地址 Control-plane URL（用于历史/热力图/一键确认中转）</span>
+          <input type="url" id="cp-url" placeholder="https://your-tunnel.example.com" />
+          <small>留空则全部本地运行。控制面板<strong>不接触签证网站、不存凭证</strong>。</small>
+        </label>
+        <label class="field">
+          <span>控制面板令牌 Token</span>
+          <input type="password" id="cp-token" />
+        </label>
+        <button id="save-advanced" class="btn btn-primary">保存 Save</button>
+
+        <h3>会话上下文 Session context</h3>
+        <div id="session-ctx" class="muted"></div>
+
+        <h3>导出 / 导入配置</h3>
+        <button id="export-config" class="btn">导出 JSON</button>
+        <button id="import-config" class="btn">导入 JSON</button>
+        <input type="file" id="import-file" accept="application/json" hidden />
+
+        <div class="danger-zone">
+          <h3>数据与隐私</h3>
+          <p class="hint">
+            本扩展存储：监控配置、通知渠道密钥、调度状态、可约历史。<strong>不存</strong>签证密码或会话 cookie。
+            会话 cookie 始终保存在浏览器自身的 cookie 库中，我们只是“借用”它发请求。
+          </p>
+          <button id="clear-all" class="btn btn-danger">清除所有本地数据</button>
+        </div>
+      </section>
+    </div>
+    <script type="module" src="src/ui/options.ts"></script>
+  </body>
+</html>

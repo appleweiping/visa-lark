@@ -1,0 +1,43 @@
+# VisaLark control-plane — optional self-host (e.g. Oracle Cloud Always Free VM).
+#
+#   cp .env.example .env   # then set DASHBOARD_TOKEN
+#   docker compose up -d
+#
+# Recommended ingress: Cloudflare Tunnel (no inbound ports opened, free TLS,
+# hides the VM IP). Uncomment the `cloudflared` service below and set a token
+# from the Cloudflare Zero Trust dashboard. This is safer than exposing 8787.
+
+services:
+  control-plane:
+    build:
+      # Build context is the REPO ROOT so pnpm workspace deps resolve.
+      context: ../..
+      dockerfile: apps/control-plane/Dockerfile
+    image: visalark-control-plane:latest
+    restart: unless-stopped
+    environment:
+      PORT: "8787"
+      DASHBOARD_TOKEN: "${DASHBOARD_TOKEN:?set DASHBOARD_TOKEN in .env}"
+      DB_PATH: "/app/data/visalark.db"
+      FRONTEND_ORIGIN: "${FRONTEND_ORIGIN:-*}"
+    volumes:
+      - visalark-data:/app/data
+    # Only publish the port if you are NOT using a tunnel. With Cloudflare
+    # Tunnel, remove this and let cloudflared reach it over the compose network.
+    ports:
+      - "8787:8787"
+
+  # --- Recommended: Cloudflare Tunnel ingress (uncomment to use) ---
+  # cloudflared:
+  #   image: cloudflare/cloudflared:latest
+  #   restart: unless-stopped
+  #   command: tunnel --no-autoupdate run
+  #   environment:
+  #     TUNNEL_TOKEN: "${CLOUDFLARE_TUNNEL_TOKEN:?set in .env}"
+  #   depends_on:
+  #     - control-plane
+  #   # In the Cloudflare dashboard, point your hostname at:
+  #   #   http://control-plane:8787
+
+volumes:
+  visalark-data:
