@@ -2,10 +2,10 @@
  * Mock data for the live demo. PURE & deterministic (seeded) — the demo makes
  * ZERO network requests and never touches the visa site. This is UX showcase only.
  *
- * Facility reference data comes from @visa-lark/adapter-usvisa-info FACILITY_SEEDS
- * (the ONLY thing the web app imports from the adapter — no visa logic).
+ * Facility reference data is inlined locally (src/lib/facility-seeds.ts) so the
+ * web app is self-contained and deploys as a standalone Next.js project.
  */
-import { FACILITY_SEEDS, type FacilitySeed } from "@visa-lark/adapter-usvisa-info";
+import { FACILITY_SEEDS, type FacilitySeed } from "@/lib/facility-seeds";
 
 export type AvailabilityStatus = "plenty" | "scarce" | "none";
 
