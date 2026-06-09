@@ -32,6 +32,6 @@ export default defineManifest({
     service_worker: "src/background/index.ts",
     type: "module",
   },
-  permissions: ["storage", "alarms", "notifications", "cookies"],
+  permissions: ["storage", "alarms", "notifications"],
   host_permissions: ["https://ais.usvisa-info.com/*"],
 });

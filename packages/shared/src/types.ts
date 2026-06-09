@@ -56,7 +56,13 @@ export type PollOutcome = z.infer<typeof PollOutcome>;
  * Cookie-only by default (DESIGN.md §3.3). We NEVER require a stored password.
  */
 export const Session = z.object({
-  /** The portal's session cookie (e.g. `_yatri_session`). Encrypted at rest. */
+  /**
+   * The portal's session cookie (e.g. `_yatri_session`).
+   * - Extension data plane: this is NEVER stored — the browser's own cookie jar
+   *   holds it and `credentials:"include"` sends it; we pass a placeholder.
+   * - Agent data plane: the user pastes it into a local config file, protected
+   *   by filesystem permissions (NOT app-level encryption — see DESIGN.md §3.3).
+   */
   cookie: z.string().min(1),
   /** Rails CSRF token scraped from the schedule page, needed for POST/reschedule. */
   csrfToken: z.string().optional(),
@@ -125,6 +131,8 @@ export const DayResult = z.object({
   dates: z.array(AvailableDate).default([]),
   /** earliest acceptable date after filters, if any. */
   earliest: AvailableDate.optional(),
+  /** Number of HTTP requests this poll cycle issued (for the daily cap, H2). */
+  requestCount: z.number().int().default(1),
   raw: z.unknown().optional(),
 });
 export type DayResult = z.infer<typeof DayResult>;

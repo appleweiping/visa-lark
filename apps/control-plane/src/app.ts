@@ -8,6 +8,7 @@
  * stores availability history the data plane chooses to push.
  */
 import cors from "@fastify/cors";
+import { createHash, timingSafeEqual as nodeTimingSafeEqual } from "node:crypto";
 import { buildChannels, dispatch, type ChannelConfig } from "@visa-lark/notify";
 import type { NotifyMessage } from "@visa-lark/shared";
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
@@ -92,6 +93,17 @@ export function buildApp(opts: BuildOptions): FastifyInstance {
       const m = body.message ?? {};
       if (channels.length === 0) {
         return reply.code(400).send({ error: "no_channels" });
+      }
+      // SSRF guard (M6): webhook channels POST to a caller-supplied URL. On a
+      // cloud VM that could hit the metadata endpoint or internal services.
+      // Reject webhook targets pointing at private / link-local / loopback hosts.
+      for (const c of channels) {
+        if (c.type === "webhook" && !isSafePublicUrl(c.url)) {
+          return reply.code(400).send({
+            error: "blocked_webhook_target",
+            message: "Webhook URL must be a public http(s) host (no private/link-local/loopback addresses).",
+          });
+        }
       }
       if (!m.title || !m.body) {
         return reply.code(400).send({ error: "invalid_message", message: "title and body required" });
@@ -178,10 +190,43 @@ export function buildApp(opts: BuildOptions): FastifyInstance {
 
 /** Constant-time string comparison to avoid token-length/timing leaks. */
 function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let mismatch = 0;
-  for (let i = 0; i < a.length; i++) {
-    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  // Hash both to a fixed length so the compare itself never leaks length (L6).
+  const ah = createHash("sha256").update(ab).digest();
+  const bh = createHash("sha256").update(bb).digest();
+  return nodeTimingSafeEqual(ah, bh) && a.length === b.length;
+}
+
+/**
+ * SSRF guard for caller-supplied webhook URLs (M6). Allows only http(s) to a
+ * host that is not an obvious private / link-local / loopback / metadata target.
+ * This is a hostname/literal-IP heuristic; it does not resolve DNS (a determined
+ * attacker could use a rebinding domain — documented as a residual risk).
+ */
+function isSafePublicUrl(raw: string): boolean {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return false;
   }
-  return mismatch === 0;
+  if (u.protocol !== "http:" && u.protocol !== "https:") return false;
+  const host = u.hostname.toLowerCase();
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local")) return false;
+  if (host === "169.254.169.254" || host === "metadata.google.internal") return false;
+  // IPv4 literal private/loopback/link-local ranges.
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+  if (m) {
+    const [a, b] = [Number(m[1]), Number(m[2])];
+    if (a === 10 || a === 127 || a === 0) return false;
+    if (a === 169 && b === 254) return false; // link-local incl. metadata
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a === 192 && b === 168) return false;
+  }
+  // IPv6 loopback / link-local / unique-local.
+  if (host === "::1" || host.startsWith("fe80") || host.startsWith("fc") || host.startsWith("fd")) {
+    return false;
+  }
+  return true;
 }

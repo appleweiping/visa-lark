@@ -97,3 +97,9 @@ code { background: var(--line); padding: 1px 6px; border-radius: 6px; font-size:
 .add-channel { display: flex; gap: 8px; margin: 12px 0; }
 .danger-zone { margin-top: 30px; padding: 16px; border: 1px dashed var(--err); border-radius: var(--radius); }
 h3 { margin-top: 24px; }
+
+/* confirm page time chips */
+.times-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.time-chip { padding: 8px 16px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); cursor: pointer; font-size: 0.95rem; font-weight: 600; transition: all 0.1s ease; }
+.time-chip:hover { border-color: var(--accent); transform: translateY(-1px); }
+.time-chip.sel { background: var(--accent); color: #fff; border-color: transparent; }

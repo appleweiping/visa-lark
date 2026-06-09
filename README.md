@@ -8,7 +8,7 @@
 
 *Open-source, account-safe US visa appointment monitor. Zero stored credentials. Zero evasion. No proxy arms race.*
 
-[![tests](https://img.shields.io/badge/tests-75%20passing-2fae6a)]() [![license](https://img.shields.io/badge/license-Apache--2.0-6b8cff)](./LICENSE) [![made with](https://img.shields.io/badge/TypeScript-strict-3178c6)]()
+[![tests](https://img.shields.io/badge/tests-83%20passing-2fae6a)]() [![license](https://img.shields.io/badge/license-Apache--2.0-6b8cff)](./LICENSE) [![made with](https://img.shields.io/badge/TypeScript-strict-3178c6)]()
 
 [功能](#-功能-features) · [它如何保护你的账号](#-它如何保护你的账号-the-safety-model) · [安装](#-安装-install) · [对比 qmq](#-诚实对比-honest-comparison) · [免责声明](#%EF%B8%8F-免责声明-disclaimer)
 
@@ -134,6 +134,7 @@ VisaLark 是<strong>教育与个人用途</strong>的开源工具，<strong>与 
 - 本项目<strong>不</strong>提供托管服务，<strong>不</strong>承诺抢到任何预约。
 - 不构成法律意见。商用或托管前请咨询律师。
 - `auto` 自动改期是破坏性操作（会替换你现有的预约），默认关闭，请理解全部安全锁后再开启。
+- **改期/预约功能为实验性**：usvisa-info 的改期表单字段与确认流程未在真实账号上完整验证，结果不明确时本工具会标记为 `failed` 并要求你<strong>手动核对</strong>，绝不假装成功。监控/通知是核心、最可靠的部分；自动/一键改期请先用<strong>演练模式（dry-run）</strong>验证。
 
 按 [Apache-2.0](./LICENSE) 授权。No warranty.
 

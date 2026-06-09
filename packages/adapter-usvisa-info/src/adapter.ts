@@ -80,6 +80,7 @@ export class UsVisaInfoAdapter implements VisaAdapter {
     const all: AvailableDate[] = [];
     // Multi-consulate watch: "earliest across my acceptable cities" (DESIGN.md §9).
     // Poll each facility sequentially — never burst — caller controls cadence.
+    let requestCount = 0;
     for (const facilityId of monitor.facilityIds) {
       const res = await this.transport.request({
         url: daysUrl(session.embassyCode, session.scheduleId, facilityId, monitor.expedite),
@@ -87,18 +88,24 @@ export class UsVisaInfoAdapter implements VisaAdapter {
         headers: this.headers(session, true),
         json: true,
       });
+      requestCount += 1;
       const outcome = classifyResponse(this.toClassify(res));
       // FAIL-SAFE: on any non-ok outcome, stop immediately and report it.
+      // We report the dates found so far so a real slot from an earlier facility
+      // isn't silently lost when a later facility hits a wall (L8).
       if (outcome !== "ok") {
-        return { outcome, dates: [] };
+        const earliestSoFar = all.length
+          ? [...all].sort((a, b) => a.date.localeCompare(b.date))[0]
+          : undefined;
+        return { outcome, dates: all, earliest: earliestSoFar, requestCount };
       }
       for (const date of parseDays(res.text)) {
         all.push({ date, facilityId });
       }
     }
-    if (all.length === 0) return { outcome: "empty", dates: [] };
+    if (all.length === 0) return { outcome: "empty", dates: [], requestCount };
     const earliest = [...all].sort((a, b) => a.date.localeCompare(b.date))[0];
-    return { outcome: "ok", dates: all, earliest };
+    return { outcome: "ok", dates: all, earliest, requestCount };
   }
 
   async getTimes(

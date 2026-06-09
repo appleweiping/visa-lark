@@ -3,6 +3,7 @@ import {
   POLL_PROFILES,
   jitteredInterval,
   initBackoff,
+  resetBackoff,
   decideNextAction,
   recordOutcome,
   classifyIpOrg,
@@ -92,6 +93,26 @@ describe("fail-safe state machine", () => {
     s = recordOutcome(s, "network_error", now); // 1 error, no cooldown yet
     const action = decideNextAction(s, POLL_PROFILES.patient!, now + 1000);
     expect(action.kind).toBe("poll");
+  });
+
+  it("resetBackoff clears the cooldown/errors but PRESERVES the daily request history (M4)", () => {
+    const now = 7_000_000;
+    let s = initBackoff();
+    s = recordOutcome(s, "ok", now, 5); // 5 requests today
+    s = recordOutcome(s, "challenge", now + 1); // now stopped + cooled down
+    expect(decideNextAction(s, POLL_PROFILES.patient!, now + 2).kind).toBe("stop");
+    const reset = resetBackoff(s);
+    expect(reset.consecutiveErrors).toBe(0);
+    expect(reset.cooldownUntil).toBe(0);
+    // daily cap history is NOT wiped — re-syncing a session can't bypass the cap
+    expect(reset.recentPolls.length).toBe(s.recentPolls.length);
+    expect(decideNextAction(reset, POLL_PROFILES.patient!, now + 2).kind).toBe("poll");
+  });
+
+  it("records requestCount stamps for the daily cap (H2)", () => {
+    const now = 8_000_000;
+    const s = recordOutcome(initBackoff(), "empty", now, 4);
+    expect(s.recentPolls).toHaveLength(4);
   });
 });
 

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VisaLark · 一键确认预约</title>
+    <link rel="stylesheet" href="src/ui/styles.css" />
+  </head>
+  <body class="options">
+    <div class="container" style="max-width: 560px">
+      <header class="page-head">
+        <h1>一键确认预约 <span class="zh">云雀</span></h1>
+        <p class="tagline">
+          这一步会用你浏览器里已登录的会话<strong>改期到下面的时段</strong>。改期是破坏性操作，会替换你现有的预约 —— 请确认无误后再点。
+        </p>
+      </header>
+
+      <div id="summary" class="callout">加载中…</div>
+
+      <div class="field">
+        <span>可选时段 Available times</span>
+        <div id="times" class="times-grid"><span class="muted">正在获取时段…</span></div>
+      </div>
+
+      <div id="actions" class="ed-actions" style="display:none">
+        <button id="confirm-btn" class="btn btn-primary">确认改期到所选时段</button>
+        <button id="cancel-btn" class="btn">取消</button>
+      </div>
+
+      <div id="result"></div>
+
+      <p class="hint">
+        如果时段已被抢走，会显示"slot gone"，你可以关闭本页等待下一次提醒。本扩展不会反复硬抢。
+      </p>
+    </div>
+    <script type="module" src="src/ui/confirm.ts"></script>
+  </body>
+</html>

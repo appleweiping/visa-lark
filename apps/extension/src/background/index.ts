@@ -2,7 +2,9 @@ import {
   POLL_PROFILES,
   DEFAULT_PROFILE,
   initBackoff,
+  resetBackoff,
   runMonitorOnce,
+  dispatch,
   type Monitor,
   type Session,
   type RunResult,
@@ -15,6 +17,7 @@ import {
   loadState,
   saveState,
   appendLog,
+  mutate,
   type ExtState,
 } from "../lib/storage.js";
 
@@ -26,6 +29,7 @@ import {
  */
 
 const ALARM_PREFIX = "visalark:";
+const HEARTBEAT_ALARM = "visalark-heartbeat";
 const transport = new BrowserTransport();
 const adapter = new UsVisaInfoAdapter(transport);
 
@@ -77,9 +81,10 @@ async function tick(monitorId: string): Promise<void> {
     result = await runMonitorOnce(monitor, session, profile, state.autoBook, backoff, {
       adapter,
       channels: channelsFor(state),
-      confirmUrlBase: state.controlPlaneUrl
-        ? `${state.controlPlaneUrl.replace(/\/$/, "")}/confirm`
-        : undefined,
+      // The one-tap confirm link points at an EXTENSION page (not the control
+      // plane). Booking must happen in the data plane that holds the warm
+      // browser session — the control plane has no session and cannot book (C1).
+      confirmUrlBase: chrome.runtime.getURL("confirm.html"),
       getCurrentAppointment: () => state.currentAppointment,
       getAutoBookContext: () => ({
         bookingsMade: bk.bookingsMade,
@@ -102,25 +107,28 @@ async function tick(monitorId: string): Promise<void> {
     return;
   }
 
-  // Persist new backoff + bookkeeping + log.
-  const fresh = await loadState();
-  fresh.backoff[monitorId] = result.backoff;
-  fresh.bookkeeping[monitorId] = bk;
-  fresh.logs.push({
-    at: Date.now(),
-    monitorId,
-    outcome: result.outcome,
-    note: result.note,
+  // Persist new backoff + bookkeeping + log atomically (H3 — serialized write).
+  const stopped = result.next.kind === "stopped";
+  await mutate(async (fresh) => {
+    fresh.backoff[monitorId] = result.backoff;
+    fresh.bookkeeping[monitorId] = bk;
+    fresh.logs.push({
+      at: Date.now(),
+      monitorId,
+      outcome: result.outcome,
+      note: result.note,
+    });
+    if (stopped) {
+      // Disable the monitor so it doesn't silently keep retrying a banned/expired session.
+      fresh.monitors = fresh.monitors.map((m) =>
+        m.id === monitorId ? { ...m, enabled: false } : m,
+      );
+    }
+    return fresh;
   });
-  await saveState(fresh);
 
   // Schedule next run, or stop.
   if (result.next.kind === "stopped") {
-    // Disable the monitor so it doesn't silently keep retrying a banned/expired session.
-    fresh.monitors = fresh.monitors.map((m) =>
-      m.id === monitorId ? { ...m, enabled: false } : m,
-    );
-    await saveState(fresh);
     await chrome.alarms.clear(alarmName(monitorId));
     return;
   }
@@ -163,6 +171,21 @@ async function rearmAll(): Promise<void> {
       await chrome.alarms.create(alarmName(m.id), { delayInMinutes: jitter });
     }
   }
+  // Heartbeat (M3): a daily low-priority "still alive" ping so the user can tell
+  // "monitor alive, no slots" apart from "monitor died". Only if a channel exists.
+  await chrome.alarms.create(HEARTBEAT_ALARM, { periodInMinutes: 24 * 60, delayInMinutes: 24 * 60 });
+}
+
+async function sendHeartbeat(): Promise<void> {
+  const state = await loadState();
+  const enabled = state.monitors.filter((m) => m.enabled).length;
+  if (enabled === 0) return;
+  await dispatch(channelsFor(state), {
+    title: "🐦 VisaLark 心跳 / heartbeat",
+    body: `监控运行正常，共 ${enabled} 个在盯。无消息=暂无符合条件的位（不是挂了）。`,
+    priority: "low",
+    kind: "heartbeat",
+  });
 }
 
 // ---- Event wiring ----
@@ -175,6 +198,10 @@ chrome.runtime.onStartup.addListener(() => {
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === HEARTBEAT_ALARM) {
+    void sendHeartbeat();
+    return;
+  }
   if (alarm.name.startsWith(ALARM_PREFIX)) {
     const monitorId = alarm.name.slice(ALARM_PREFIX.length);
     void tick(monitorId);
@@ -210,6 +237,75 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         }
         const health = await adapter.validateSession(session);
         sendResponse({ ok: true, health });
+        break;
+      }
+      case "getTimes": {
+        // Used by the one-tap confirm page to list bookable times for a date.
+        const state = await loadState();
+        const session = buildSession(state);
+        if (!session) {
+          sendResponse({ ok: false, error: "no session context" });
+          break;
+        }
+        const monitor =
+          state.monitors.find((m) => m.id === msg.monitorId) ??
+          ({ expedite: false } as never);
+        const times = await adapter.getTimes(monitor, msg.date, msg.facilityId, session);
+        sendResponse({ ok: true, times });
+        break;
+      }
+      case "confirmBook": {
+        // The HUMAN clicked "confirm" — book using the warm browser session (C1).
+        // This is human-in-the-loop, so it does NOT run the unattended auto-book
+        // interlocks; the user explicitly chose this slot. We still fail safe.
+        const state = await loadState();
+        const session = buildSession(state);
+        if (!session) {
+          sendResponse({ ok: false, error: "会话未同步，请先在弹窗中同步会话。" });
+          break;
+        }
+        const result = await adapter.reschedule(
+          {
+            facilityId: msg.facilityId,
+            date: msg.date,
+            time: msg.time,
+            monitorId: msg.monitorId,
+          },
+          session,
+        );
+        // On confirmed booking, update the user's current appointment locally.
+        if (result.status === "confirmed") {
+          const fresh = await mutate(async (s) => {
+            s.currentAppointment = { date: msg.date, facilityId: msg.facilityId };
+            const bk = s.bookkeeping[msg.monitorId] ?? { bookingsMade: 0, bookingTimes: [] };
+            bk.bookingsMade += 1;
+            bk.bookingTimes.push(Date.now());
+            s.bookkeeping[msg.monitorId] = bk;
+            return s;
+          });
+          await dispatch(channelsFor(fresh), {
+            title: "✅ 预约已确认 / Booked",
+            body: `${msg.date} ${msg.time}`,
+            priority: "high",
+            kind: "booked",
+          });
+        }
+        sendResponse({ ok: true, result });
+        break;
+      }
+      case "resumeMonitor": {
+        // Re-sync recovery (M4): clear the error/cooldown state but keep the
+        // daily request history, then re-enable + rearm.
+        await mutate(async (state) => {
+          const bo = state.backoff[msg.monitorId];
+          if (bo) state.backoff[msg.monitorId] = resetBackoff(bo);
+          state.monitors = state.monitors.map((m) =>
+            m.id === msg.monitorId ? { ...m, enabled: true } : m,
+          );
+          return state;
+        });
+        await rearmAll();
+        sendResponse({ ok: true });
         break;
       }
       default:

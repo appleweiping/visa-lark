@@ -77,14 +77,37 @@ export async function saveState(state: ExtState): Promise<void> {
 }
 
 export async function patchState(patch: Partial<ExtState>): Promise<ExtState> {
-  const cur = await loadState();
-  const next = { ...cur, ...patch };
-  await saveState(next);
-  return next;
+  return mutate(async (cur) => {
+    Object.assign(cur, patch);
+    return cur;
+  });
 }
 
 export async function appendLog(entry: PollLogEntry): Promise<void> {
-  const cur = await loadState();
-  cur.logs.push(entry);
-  await saveState(cur);
+  await mutate(async (cur) => {
+    cur.logs.push(entry);
+    return cur;
+  });
+}
+
+/**
+ * Serialized read-modify-write (H3). MV3 alarms for different monitors fire
+ * independently and their handlers interleave; because each writes the WHOLE
+ * state blob, a naive load→modify→save loses concurrent updates (dropped
+ * cooldowns → resumed hammering; dropped bookkeeping → interlock bypass /
+ * double-book). JS is single-threaded, so chaining every mutation onto one
+ * promise queue makes each load→modify→save atomic w.r.t. the others.
+ */
+let writeChain: Promise<unknown> = Promise.resolve();
+
+export function mutate(fn: (state: ExtState) => Promise<ExtState> | ExtState): Promise<ExtState> {
+  const run = writeChain.then(async () => {
+    const cur = await loadState();
+    const next = await fn(cur);
+    await saveState(next);
+    return next;
+  });
+  // keep the chain alive even if one mutation throws
+  writeChain = run.catch(() => undefined);
+  return run;
 }

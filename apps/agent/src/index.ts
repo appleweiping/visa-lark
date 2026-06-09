@@ -111,11 +111,26 @@ async function main() {
     setTimeout(() => void tick(m), jitter);
   }
 
+  // Periodic IP re-check (L3): a 24x7 agent can have its network change (VPN
+  // toggled on, routed through a datacenter). Re-verify hourly; if it drifts to
+  // a datacenter ASN, stop all monitors to protect the account.
+  const ipRecheck = setInterval(async () => {
+    if (cfg.allowDatacenterIp) return;
+    const r = await checkEgressIp();
+    if (r.checked && r.isLikelyDatacenter) {
+      log(`⛔ Egress IP changed to a datacenter (${r.matchedHint}). Stopping all monitors to protect your account.`);
+      for (const t of timers.values()) clearTimeout(t);
+      timers.clear();
+    }
+  }, 60 * 60_000);
+  ipRecheck.unref?.();
+
   // keep process alive
   process.on("SIGINT", () => {
     log("Shutting down. State saved.");
     saveState(cfg.stateFile!, state);
     for (const t of timers.values()) clearTimeout(t);
+    clearInterval(ipRecheck);
     process.exit(0);
   });
 }

@@ -13,6 +13,7 @@ import {
   type AutoBookContext,
   earliestAcceptable,
   evaluateAutoBook,
+  timeAllowed,
 } from "./interlocks.js";
 import type {
   BookingResult,
@@ -123,7 +124,7 @@ export async function runMonitorOnce(
 
   // 2) Poll available days.
   const day = await deps.adapter.getAvailableDays(monitor, session);
-  const newBackoff = recordOutcome(backoff, day.outcome, now);
+  const newBackoff = recordOutcome(backoff, day.outcome, now, day.requestCount);
 
   if (day.outcome !== "ok") {
     // Surface expiry/challenge to the user; reschedule per backoff.
@@ -178,6 +179,7 @@ export async function runMonitorOnce(
     : undefined;
 
   let bookingResult: BookingResult | undefined;
+  let workingBackoff = newBackoff;
 
   if (monitor.mode === "auto") {
     // Need a concrete time to book — fetch times for the earliest date.
@@ -187,7 +189,38 @@ export async function runMonitorOnce(
       earliest.facilityId,
       session,
     );
-    const time = times.times[0];
+    // Account for the extra request, and FAIL-SAFE on any non-ok times outcome
+    // (a challenge/ban/expiry on the times endpoint must STOP, not be swallowed — H1).
+    workingBackoff = recordOutcome(workingBackoff, times.outcome, now, 1);
+    if (times.outcome !== "ok") {
+      if (times.outcome === "session_expired") {
+        await dispatch(deps.channels, {
+          title: "🔑 会话已过期 / Session expired",
+          body: "请在浏览器重新打开签证网站并重新同步会话。Re-open the visa site and re-sync.",
+          priority: "high",
+          kind: "session_expired",
+        });
+      }
+      const action = decideNextAction(workingBackoff, profile, now);
+      if (action.kind === "stop") {
+        return {
+          outcome: times.outcome,
+          next: { kind: "stopped", reason: action.reason },
+          backoff: workingBackoff,
+          note: `Stopped after times poll: ${times.outcome}.`,
+        };
+      }
+      const delayMs =
+        action.kind === "wait" ? Math.max(1000, action.untilMs - now) : jitteredInterval(profile, rng);
+      return {
+        outcome: times.outcome,
+        next: { kind: "schedule", delayMs },
+        backoff: workingBackoff,
+        note: `Times poll outcome: ${times.outcome}.`,
+      };
+    }
+    // Pick the earliest time that passes the time-of-day filter (M2).
+    const time = times.times.find((t) => timeAllowed(t, monitor.todFilter));
     if (time) {
       const ctx: AutoBookContext = {
         current: deps.getCurrentAppointment(),
@@ -222,6 +255,13 @@ export async function runMonitorOnce(
         };
         await dispatch(deps.channels, slotMessage(monitor, earliest.date, earliest.facilityId, time, confirmUrl));
       }
+    } else {
+      // Times came back ok but none usable (emptied by a race, or all filtered out by
+      // TOD) → don't silently drop a found date; notify the human (H1).
+      await dispatch(
+        deps.channels,
+        slotMessage(monitor, earliest.date, earliest.facilityId, undefined, confirmUrl),
+      );
     }
   } else {
     // notify / confirm modes → push (confirm carries a one-tap deep link).
@@ -234,7 +274,7 @@ export async function runMonitorOnce(
   return {
     outcome: "ok",
     next: { kind: "schedule", delayMs: jitteredInterval(profile, rng) },
-    backoff: newBackoff,
+    backoff: workingBackoff,
     note: `Slot found: ${earliest.date} @ ${earliest.facilityId} (mode=${monitor.mode}).`,
     bookingResult,
   };

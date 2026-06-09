@@ -1,4 +1,4 @@
-import { loadState, saveState, type ExtState } from "../lib/storage.js";
+import { loadState, saveState, mutate, type ExtState } from "../lib/storage.js";
 import { FACILITY_SEEDS } from "@visa-lark/adapter-usvisa-info";
 import type { Monitor, VisaType, BookingMode } from "@visa-lark/shared";
 import type { ChannelConfig } from "@visa-lark/notify";
@@ -43,7 +43,7 @@ document.querySelectorAll<HTMLButtonElement>(".tab").forEach((tab) => {
 function facilityOptions(selected: string[]): string {
   return FACILITY_SEEDS.map(
     (f) =>
-      `<label class="fac"><input type="checkbox" value="${f.id}" ${
+      `<label class="fac"><input type="checkbox" class="fac-box" value="${f.id}" ${
         selected.includes(f.id) ? "checked" : ""
       }/> ${esc(f.city)} ${esc(f.name)} <span class="muted">#${f.id}/${f.embassyCode}</span></label>`,
   ).join("");
@@ -65,35 +65,89 @@ function monitorEditorHtml(m?: Monitor): string {
         </select>
       </div>
       <div class="ed-facilities">
-        <span class="label">监控领区（可多选 → 取最早的位）</span>
+        <span class="label">监控领区（可多选 → 取最早的位；须与已同步的领区同一国家）</span>
         ${facilityOptions(m?.facilityIds ?? [])}
+        <label class="fac-custom">其他 facility id（逗号分隔）
+          <input type="text" class="ed-fac-custom" placeholder="如 130,131"
+            value="${esc((m?.facilityIds ?? []).filter((f) => !FACILITY_SEEDS.some((s) => s.id === f)).join(","))}" />
+        </label>
       </div>
       <div class="ed-row">
         <label>最早日期 <input type="date" class="ed-dmin" value="${m?.dateMin ?? ""}" /></label>
         <label>最晚日期 <input type="date" class="ed-dmax" value="${m?.dateMax ?? ""}" /></label>
         <label class="check"><input type="checkbox" class="ed-expedite" ${m?.expedite ? "checked" : ""}/> 加急/紧急位 Expedite</label>
       </div>
+      <div class="ed-row">
+        <span class="label" style="width:100%">仅接受这些星期（不选=全部）</span>
+        ${[
+          ["日", 0], ["一", 1], ["二", 2], ["三", 3], ["四", 4], ["五", 5], ["六", 6],
+        ]
+          .map(
+            ([lbl, d]) =>
+              `<label class="check dow"><input type="checkbox" class="ed-dow" value="${d}" ${
+                (m?.dowFilter ?? []).includes(d as number) ? "checked" : ""
+              }/> 周${lbl}</label>`,
+          )
+          .join("")}
+      </div>
+      <div class="ed-row">
+        <label>时段从 <input type="number" class="ed-tod-start" min="0" max="23" value="${m?.todFilter?.startHour ?? ""}" placeholder="0" /> 时</label>
+        <label>到 <input type="number" class="ed-tod-end" min="0" max="23" value="${m?.todFilter?.endHour ?? ""}" placeholder="23" /> 时（留空=全天）</label>
+      </div>
       <div class="ed-actions">
         <button class="btn btn-primary ed-save">保存</button>
         <button class="btn ed-cancel">取消</button>
       </div>
+      <div class="ed-error" style="color:var(--err);font-size:0.82rem;margin-top:6px"></div>
     </div>`;
 }
 
-function readEditor(card: HTMLElement, existingId?: string): Monitor {
-  const facilityIds = Array.from(
-    card.querySelectorAll<HTMLInputElement>(".ed-facilities input:checked"),
+function readEditor(card: HTMLElement, existingId?: string): Monitor | { error: string } {
+  const checked = Array.from(
+    card.querySelectorAll<HTMLInputElement>(".ed-facilities input.fac-box:checked"),
   ).map((i) => i.value);
+  const custom = (card.querySelector(".ed-fac-custom") as HTMLInputElement).value
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+  const facilityIds = [...new Set([...checked, ...custom])];
+  // M5: require an explicit facility selection — never silently fall back to Beijing.
+  if (facilityIds.length === 0) {
+    return { error: "请至少选择一个领区，或填写自定义 facility id。" };
+  }
+  // M1: all facilities in one monitor must belong to the SAME embassy locale —
+  // usvisa-info schedule_id + locale are per-account-per-country, so a single
+  // synced session can only query one country's facilities.
+  const locales = new Set(
+    checked
+      .map((id) => FACILITY_SEEDS.find((s) => s.id === id)?.embassyCode)
+      .filter(Boolean),
+  );
+  if (locales.size > 1) {
+    return {
+      error: "一个监控只能包含同一国家/领区的城市（签证账号的 schedule 与领区是按国家绑定的）。请分开建监控。",
+    };
+  }
+  const dowFilter = Array.from(
+    card.querySelectorAll<HTMLInputElement>(".ed-dow:checked"),
+  ).map((i) => Number(i.value));
+  const todStart = (card.querySelector(".ed-tod-start") as HTMLInputElement).value;
+  const todEnd = (card.querySelector(".ed-tod-end") as HTMLInputElement).value;
+  const todFilter =
+    todStart !== "" || todEnd !== ""
+      ? { startHour: Number(todStart || 0), endHour: Number(todEnd || 23) }
+      : undefined;
   return {
     id: existingId || uid(),
     label: (card.querySelector(".ed-label") as HTMLInputElement).value,
-    facilityIds: facilityIds.length ? facilityIds : ["95"],
+    facilityIds,
     visaType: (card.querySelector(".ed-visa") as HTMLSelectElement).value as VisaType,
     mode: (card.querySelector(".ed-mode") as HTMLSelectElement).value as BookingMode,
     pollProfile: (card.querySelector(".ed-profile") as HTMLSelectElement).value,
     dateMin: (card.querySelector(".ed-dmin") as HTMLInputElement).value || undefined,
     dateMax: (card.querySelector(".ed-dmax") as HTMLInputElement).value || undefined,
-    dowFilter: [],
+    dowFilter,
+    todFilter,
     expedite: (card.querySelector(".ed-expedite") as HTMLInputElement).checked,
     enabled: true,
   };
@@ -108,11 +162,18 @@ $("#add-monitor").addEventListener("click", () => {
 function wireEditor(card: HTMLElement, existingId?: string) {
   card.querySelector(".ed-save")!.addEventListener("click", async () => {
     const m = readEditor(card, existingId);
-    const state = await loadState();
-    const idx = state.monitors.findIndex((x) => x.id === m.id);
-    if (idx >= 0) state.monitors[idx] = m;
-    else state.monitors.push(m);
-    await saveState(state);
+    const errEl = card.querySelector(".ed-error") as HTMLElement;
+    if ("error" in m) {
+      errEl.textContent = m.error;
+      return;
+    }
+    errEl.textContent = "";
+    await mutate(async (state) => {
+      const idx = state.monitors.findIndex((x) => x.id === m.id);
+      if (idx >= 0) state.monitors[idx] = m;
+      else state.monitors.push(m);
+      return state;
+    });
     $("#monitor-editor").innerHTML = "";
     await renderMonitors();
     chrome.runtime.sendMessage({ type: "rearm" });
@@ -258,19 +319,24 @@ async function renderAutoBook() {
 }
 
 $("#save-autobook").addEventListener("click", async () => {
-  const s = await loadState();
   const date = (document.getElementById("cur-date") as HTMLInputElement).value;
-  s.currentAppointment = date ? { ...s.currentAppointment, date } : s.currentAppointment;
-  s.autoBook = {
-    minImprovementDays: Number((document.getElementById("min-improve") as HTMLInputElement).value) || 7,
-    allowedFacilityIds: (document.getElementById("allow-facilities") as HTMLInputElement).value
-      .split(",").map((x) => x.trim()).filter(Boolean),
-    confirmFirstN: Number((document.getElementById("confirm-first-n") as HTMLInputElement).value) || 0,
-    perDayCap: Number((document.getElementById("per-day-cap") as HTMLInputElement).value) || 1,
-    dryRun: (document.getElementById("dry-run") as HTMLInputElement).checked,
-    killSwitch: (document.getElementById("kill-switch") as HTMLInputElement).checked,
-  };
-  await saveState(s);
+  const cfnRaw = (document.getElementById("confirm-first-n") as HTMLInputElement).value;
+  // L1: a blank confirm-first-N must NOT silently disable the safety interlock.
+  // Blank → default 1; an explicit 0 is honored but clamped non-negative.
+  const confirmFirstN = cfnRaw.trim() === "" ? 1 : Math.max(0, Number(cfnRaw) || 0);
+  await mutate(async (s) => {
+    s.currentAppointment = date ? { ...s.currentAppointment, date } : s.currentAppointment;
+    s.autoBook = {
+      minImprovementDays: Math.max(1, Number((document.getElementById("min-improve") as HTMLInputElement).value) || 7),
+      allowedFacilityIds: (document.getElementById("allow-facilities") as HTMLInputElement).value
+        .split(",").map((x) => x.trim()).filter(Boolean),
+      confirmFirstN,
+      perDayCap: Math.max(1, Number((document.getElementById("per-day-cap") as HTMLInputElement).value) || 1),
+      dryRun: (document.getElementById("dry-run") as HTMLInputElement).checked,
+      killSwitch: (document.getElementById("kill-switch") as HTMLInputElement).checked,
+    };
+    return s;
+  });
   ($("#save-autobook") as HTMLButtonElement).textContent = "已保存 ✓";
   setTimeout(() => (($("#save-autobook") as HTMLButtonElement).textContent = "保存 Save"), 1500);
 });

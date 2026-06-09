@@ -10,6 +10,7 @@ export default defineConfig({
       input: {
         popup: "popup.html",
         options: "options.html",
+        confirm: "confirm.html",
       },
     },
   },

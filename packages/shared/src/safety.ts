@@ -64,6 +64,16 @@ export function initBackoff(): BackoffState {
   return { consecutiveErrors: 0, cooldownUntil: 0, recentPolls: [] };
 }
 
+/**
+ * Clear the error/cooldown state while PRESERVING the daily-request history.
+ * Called when the user re-syncs their session after a challenge/expiry stop
+ * (M4) — re-syncing should let monitoring resume, but it must not reset the
+ * daily request cap (that protects the account regardless of session changes).
+ */
+export function resetBackoff(state: BackoffState): BackoffState {
+  return { consecutiveErrors: 0, cooldownUntil: 0, recentPolls: state.recentPolls };
+}
+
 export type NextAction =
   | { kind: "poll" }
   | { kind: "wait"; untilMs: number; reason: string }
@@ -119,14 +129,23 @@ export function healthToOutcome(h: SessionHealth): PollOutcome {
   }
 }
 
-/** Update backoff state after a poll. Pure function — returns the new state. */
+/**
+ * Update backoff state after a poll cycle. Pure function — returns the new state.
+ *
+ * `requestCount` is the number of actual HTTP requests the cycle issued (a
+ * multi-facility monitor makes one request per facility, plus times/reschedule
+ * calls). The daily cap counts REQUESTS, not cycles, so it bounds the real load
+ * on usvisa-info (H2). Defaults to 1 for callers that issue a single request.
+ */
 export function recordOutcome(
   state: BackoffState,
   outcome: PollOutcome,
   now: number,
+  requestCount = 1,
 ): BackoffState {
   const dayAgo = now - 24 * 60 * 60_000;
-  const recentPolls = [...state.recentPolls.filter((t) => t > dayAgo), now];
+  const newStamps = Array.from({ length: Math.max(1, requestCount) }, () => now);
+  const recentPolls = [...state.recentPolls.filter((t) => t > dayAgo), ...newStamps];
 
   switch (outcome) {
     case "ok":

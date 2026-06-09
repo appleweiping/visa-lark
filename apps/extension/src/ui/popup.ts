@@ -1,4 +1,4 @@
-import { loadState, type ExtState } from "../lib/storage.js";
+import { loadState, mutate, type ExtState } from "../lib/storage.js";
 import { parseScheduleUrl } from "../lib/parse-url.js";
 
 /**
@@ -51,6 +51,17 @@ async function render() {
       <span class="mi-mode mode-${m.mode}">${modeText(m.mode)}</span>
       <span class="mi-state ${m.enabled ? "on" : "off"}">${m.enabled ? "运行中" : "已停"}</span>
     `;
+    if (!m.enabled) {
+      // M4: stopped monitors (after a challenge/expiry) need a one-click recovery
+      // that resets the error/cooldown state and re-arms — re-syncing alone won't.
+      const resume = document.createElement("button");
+      resume.className = "link";
+      resume.textContent = "恢复";
+      resume.addEventListener("click", () => {
+        chrome.runtime.sendMessage({ type: "resumeMonitor", monitorId: m.id }, () => render());
+      });
+      li.appendChild(resume);
+    }
     list.appendChild(li);
   }
 
@@ -84,9 +95,10 @@ document.getElementById("sync-session")!.addEventListener("click", async () => {
       "未检测到签证排期页。请先打开 ais.usvisa-info.com 并登录到“预约/改期”页面，再点同步。";
     return;
   }
-  const state = await loadState();
-  state.sessionCtx = detected;
-  await chrome.storage.local.set({ visalark_state_v1: state });
+  await mutate(async (state) => {
+    state.sessionCtx = detected;
+    return state;
+  });
   hintEl.textContent = `已同步：${detected.embassyCode} · ${detected.scheduleId}`;
   chrome.runtime.sendMessage({ type: "validateSession" }, (resp) => {
     if (resp?.ok) badge(document.getElementById("session-badge")!, resp.health);

@@ -196,6 +196,46 @@ describe("control-plane API", () => {
       expect(res.json().error).toBe("no_channels");
     });
 
+    it("blocks SSRF: webhook pointing at the cloud metadata endpoint (M6)", async () => {
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/notify",
+        headers: auth(),
+        payload: {
+          channels: [{ type: "webhook", url: "http://169.254.169.254/latest/meta-data/" }],
+          message: { title: "x", body: "y" },
+        },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.json().error).toBe("blocked_webhook_target");
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("blocks SSRF: webhook to a private 192.168 / localhost target (M6)", async () => {
+      for (const url of ["http://192.168.1.10/x", "http://localhost:9200/", "http://10.0.0.5/"]) {
+        const res = await app.inject({
+          method: "POST",
+          url: "/api/notify",
+          headers: auth(),
+          payload: { channels: [{ type: "webhook", url }], message: { title: "x", body: "y" } },
+        });
+        expect(res.statusCode).toBe(400);
+      }
+    });
+
+    it("allows a public webhook host", async () => {
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/notify",
+        headers: auth(),
+        payload: {
+          channels: [{ type: "webhook", url: "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=abc" }],
+          message: { title: "x", body: "y" },
+        },
+      });
+      expect(res.statusCode).toBe(200);
+    });
+
     it("rejects a message missing title/body (400)", async () => {
       const res = await app.inject({
         method: "POST",

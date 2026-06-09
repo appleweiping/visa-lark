@@ -30,13 +30,22 @@ const monitor: Monitor = {
   enabled: true,
 };
 
-function fakeAdapter(day: DayResult, times: string[] = ["09:00"]): VisaAdapter {
+function fakeAdapter(
+  day: DayResult,
+  times: string[] = ["09:00"],
+  timesOutcome: "ok" | "challenge" | "session_expired" = "ok",
+): VisaAdapter {
   return {
     id: "fake",
     displayName: "Fake",
     validateSession: async () => "healthy",
     getAvailableDays: async () => day,
-    getTimes: async (_m, date, facilityId) => ({ outcome: "ok", date, facilityId, times }),
+    getTimes: async (_m, date, facilityId) => ({
+      outcome: timesOutcome,
+      date,
+      facilityId,
+      times: timesOutcome === "ok" ? times : [],
+    }),
     reschedule: async (t) => ({ status: "confirmed", bookedDate: t.date, bookedTime: t.time }),
   };
 }
@@ -188,5 +197,76 @@ describe("runMonitorOnce — auto mode + interlocks", () => {
     expect(rescheduleSpy).not.toHaveBeenCalled();
     expect(r.bookingResult?.status).toBe("interlock_blocked");
     expect(cap.sent.some((x) => x.kind === "slot_found")).toBe(true);
+  });
+
+  it("STOPS in auto mode when the TIMES endpoint hits a challenge (H1 — no swallow)", async () => {
+    const m = { ...monitor, mode: "auto" as const };
+    const adapter = fakeAdapter(
+      {
+        outcome: "ok",
+        dates: [{ date: "2026-08-01", facilityId: "95" }],
+        earliest: { date: "2026-08-01", facilityId: "95" },
+      },
+      [],
+      "challenge",
+    );
+    const cap = captureChannel();
+    const rescheduleSpy = vi.spyOn(adapter, "reschedule");
+    const cfg = { ...DEFAULT_AUTOBOOK_CONFIG, allowedFacilityIds: ["95"], confirmFirstN: 0 };
+    const r = await runMonitorOnce(
+      m,
+      session,
+      POLL_PROFILES.patient!,
+      cfg,
+      initBackoff(),
+      baseDeps(adapter, cap.channel),
+    );
+    expect(r.next.kind).toBe("stopped"); // did NOT fall through to ok+reschedule
+    expect(rescheduleSpy).not.toHaveBeenCalled();
+  });
+
+  it("falls back to a slot_found notification when times come back empty (H1)", async () => {
+    const m = { ...monitor, mode: "auto" as const };
+    const adapter = fakeAdapter(
+      {
+        outcome: "ok",
+        dates: [{ date: "2026-08-01", facilityId: "95" }],
+        earliest: { date: "2026-08-01", facilityId: "95" },
+      },
+      [], // ok but no times (race)
+      "ok",
+    );
+    const cap = captureChannel();
+    const cfg = { ...DEFAULT_AUTOBOOK_CONFIG, allowedFacilityIds: ["95"], confirmFirstN: 0 };
+    const r = await runMonitorOnce(
+      m,
+      session,
+      POLL_PROFILES.patient!,
+      cfg,
+      initBackoff(),
+      baseDeps(adapter, cap.channel),
+    );
+    expect(r.next.kind).toBe("schedule");
+    expect(cap.sent.some((x) => x.kind === "slot_found")).toBe(true); // not dropped
+  });
+});
+
+describe("runMonitorOnce — daily request accounting (H2)", () => {
+  it("records one poll per facility request, not one per cycle", async () => {
+    const m = { ...monitor, facilityIds: ["95", "98", "99"] };
+    const adapter = fakeAdapter({
+      outcome: "empty",
+      dates: [],
+      requestCount: 3, // adapter polled 3 facilities
+    });
+    const r = await runMonitorOnce(
+      m,
+      session,
+      POLL_PROFILES.patient!,
+      DEFAULT_AUTOBOOK_CONFIG,
+      initBackoff(),
+      baseDeps(adapter, captureChannel().channel),
+    );
+    expect(r.backoff.recentPolls).toHaveLength(3);
   });
 });
