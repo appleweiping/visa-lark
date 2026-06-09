@@ -150,7 +150,7 @@ Later: multi-account · group/family same-day · FIFA-2026 surge preset.
 ## 11. Stack
 
 TypeScript everywhere. pnpm monorepo. Extension = MV3 (vanilla TS + Vite). Local agent = Node.
-Control plane = Fastify + `node:sqlite` (Node's built-in DatabaseSync; no native build). Web = Next.js (Vercel). Shared core (`packages/*`) is
+Control plane = Fastify + `better-sqlite3` (native addon; the build toolchain is handled in the Dockerfile). Web = Next.js (Vercel). Shared core (`packages/*`) is
 reused by both extension and agent so the safety/adapter/notify logic has **one** implementation.
 
 ## 12. Legal posture (protects the maintainer)

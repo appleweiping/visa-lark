@@ -68,6 +68,8 @@ export function HeatmapCard({
               {row.map((v, hour) => (
                 <div
                   key={hour}
+                  role="img"
+                  aria-label={`${dowLabels[dow]} ${String(hour).padStart(2, "0")}:00 · ${v} releases`}
                   className={`m-[1px] h-3.5 w-3 shrink-0 rounded-sm ${cellColor(v)}`}
                   title={`${dowLabels[dow]} ${String(hour).padStart(2, "0")}:00 · ${v} releases`}
                 />

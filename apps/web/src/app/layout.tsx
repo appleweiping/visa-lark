@@ -5,7 +5,9 @@ import { SiteFooter } from "@/components/site-footer";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://visalark.example.com"),
+  // TODO(deploy): set to your real Vercel domain before launch — this placeholder
+  // drives canonical/sitemap/OG URLs. Or set NEXT_PUBLIC_SITE_URL.
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://visalark.example.com"),
   title: {
     default: "VisaLark 签证云雀 — open-source US visa appointment monitor",
     template: "%s · VisaLark",
