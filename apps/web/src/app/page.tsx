@@ -81,16 +81,6 @@ export default function LandingPage() {
                   height={480}
                   className="h-auto w-full bg-gradient-to-br from-lark-100 to-feather-100 object-cover dark:from-lark-900/40 dark:to-feather-900/30"
                 />
-                <div className="absolute bottom-3 right-3 animate-float">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/mascot.png"
-                    alt="VisaLark lark mascot"
-                    width={96}
-                    height={96}
-                    className="h-20 w-20 drop-shadow-lg"
-                  />
-                </div>
               </div>
             </div>
           </div>
