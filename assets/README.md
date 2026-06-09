@@ -1,34 +1,14 @@
 # Banner / mascot art
 
-`banner.png` (1280×400) is the current banner, rendered from `banner.svg` — a hand-drawn
-pencil-style chibi **lark girl (云雀)** mascot holding a calendar with a green check, soft
-warm sky-blue + pink palette matching the extension UI.
+`banner.png` (2172×724) is the current banner — an AI-generated artwork (ChatGPT Image)
+in a pencil-style 二次元 lark-girl (云雀) aesthetic, chosen by the project owner.
 
-Regenerate the PNG after editing the SVG:
+To replace it, drop a new image in as `assets/banner.png` and copy it to
+`apps/web/public/banner.png` (the web app serves its own copy). The README references
+`./assets/banner.png`.
 
-```bash
-node -e "const {Resvg}=require('@resvg/resvg-js');const fs=require('fs');const r=new Resvg(fs.readFileSync('assets/banner.svg','utf8'),{fitTo:{mode:'width',value:1280},font:{loadSystemFonts:true}});fs.writeFileSync('assets/banner.png',r.render().asPng());"
-```
+## Earlier art note
 
-## Upgrading to AI-generated art (Codex GPT-5.5 image2)
-
-This was the intended path but Codex CLI on the build machine could not reach `gpt-5.5`
-at build time (endpoint returned *"requires a newer version of Codex"*, and `service_tier`
-`flex`/`priority` rejected). When Codex GPT-5.5 + image generation is available, generate a
-banner with this prompt and reference set, then drop it in as `banner.png`:
-
-**Reference banners to feed (style anchors):** screenshots of pencil-sketch / 二次元 anime-girl
-GitHub READMEs, e.g. repos that use a soft hand-drawn chibi mascot header (search GitHub for
-"anime girl banner readme pencil"). Feed 2–3 as style references.
-
-**Prompt:**
-> A wide GitHub README banner (1280×400), hand-drawn **pencil-sketch / colored-pencil 二次元
-> anime** style, soft and warm. A cute chibi **lark-bird girl** mascot named 云雀: pale hair
-> styled like a bird crest with a small pink feather, big friendly eyes, a feather-trimmed
-> light dress, tiny wing-arms — one wing holding a small **calendar with a green checkmark**.
-> She is gliding along a **dotted flight path** over a faint sketched calendar grid. Palette:
-> sky-blue (#6b8cff), soft pink (#ffb4c8), cream paper (#fbfaf7), green check (#2fae6a).
-> Leave clear negative space on the RIGHT for title text. Light, airy, friendly, NOT dark.
-> Title text area reads "VisaLark 签证云雀". Pencil grain texture throughout.
-
-Keep `banner.svg` as the always-available fallback so the repo never ships without a banner.
+An earlier hand-built SVG fallback (`banner.svg`) was used while Codex GPT-5.5 image2 was
+unavailable at build time (the CLI endpoint rejected `gpt-5.5`). Both the SVG and the
+generated PNG were later replaced by the owner with the current image.
