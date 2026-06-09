@@ -1,9 +1,27 @@
 "use client";
 
 import Link from "next/link";
+import { Check } from "lucide-react";
 import { useLocale } from "@/lib/locale-context";
 import { Section, SectionHeading } from "@/components/section";
 import { Icon } from "@/components/icon";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const GITHUB_URL = "https://github.com/appleweiping/visa-lark";
 
@@ -15,10 +33,14 @@ export function WhatSection() {
       <SectionHeading eyebrow={t.what.eyebrow} title={t.what.title} subtitle={t.what.body} />
       <div className="mt-12 grid gap-6 md:grid-cols-3">
         {t.what.points.map((p) => (
-          <div key={p.title} className="card transition hover:-translate-y-0.5 hover:shadow-md">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{p.title}</h3>
-            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{p.body}</p>
-          </div>
+          <Card key={p.title} className="transition hover:-translate-y-0.5 hover:shadow-md">
+            <CardHeader>
+              <CardTitle className="text-lg">{p.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm leading-6 text-muted-foreground">{p.body}</p>
+            </CardContent>
+          </Card>
         ))}
       </div>
     </Section>
@@ -30,41 +52,55 @@ export function SafetySection() {
   const { t } = useLocale();
   const pillarIcons = ["shield", "lock", "ban"];
   return (
-    <Section id="safety" className="bg-slate-50 dark:bg-slate-900/40">
+    <Section id="safety" className="bg-muted/40">
       <SectionHeading eyebrow={t.safety.eyebrow} title={t.safety.title} subtitle={t.safety.intro} />
 
       <div className="mt-12 grid gap-6 lg:grid-cols-3">
         {t.safety.pillars.map((pillar, i) => (
-          <div key={pillar.title} className="card flex flex-col">
-            <span className="grid h-11 w-11 place-items-center rounded-xl bg-lark-100 text-lark-700 dark:bg-lark-900/50 dark:text-lark-300">
-              <Icon name={pillarIcons[i] ?? "shield"} className="h-6 w-6" />
-            </span>
-            <h3 className="mt-4 text-lg font-semibold text-slate-900 dark:text-white">{pillar.title}</h3>
-            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{pillar.body}</p>
-            <p className="mt-4 rounded-lg bg-lark-50 px-3 py-2 text-xs leading-5 text-lark-800 dark:bg-lark-950/50 dark:text-lark-200">
-              <span className="font-semibold">Why → </span>
-              {pillar.why}
-            </p>
-          </div>
+          <Card key={pillar.title} className="flex flex-col">
+            <CardHeader>
+              <span className="grid h-11 w-11 place-items-center rounded-xl bg-lark-100 text-lark-700 dark:bg-lark-900/50 dark:text-lark-300">
+                <Icon name={pillarIcons[i] ?? "shield"} className="h-6 w-6" />
+              </span>
+              <CardTitle className="mt-4 text-lg">{pillar.title}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-1 flex-col">
+              <p className="text-sm leading-6 text-muted-foreground">{pillar.body}</p>
+              <Tooltip>
+                <TooltipTrigger className="mt-4 self-start text-left text-xs font-semibold text-lark-700 underline-offset-2 hover:underline dark:text-lark-300">
+                  Why this matters →
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">{pillar.why}</TooltipContent>
+              </Tooltip>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
       {/* Two-plane diagram */}
       <div className="mt-10 grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border-2 border-lark-200 bg-white p-6 dark:border-lark-800 dark:bg-slate-900">
-          <div className="flex items-center gap-2">
-            <span className="badge bg-lark-600 text-white">Data plane</span>
-          </div>
-          <h3 className="mt-3 font-semibold text-slate-900 dark:text-white">{t.safety.planes.dataTitle}</h3>
-          <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{t.safety.planes.dataBody}</p>
-        </div>
-        <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
-          <div className="flex items-center gap-2">
-            <span className="badge bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200">Control plane</span>
-          </div>
-          <h3 className="mt-3 font-semibold text-slate-900 dark:text-white">{t.safety.planes.controlTitle}</h3>
-          <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{t.safety.planes.controlBody}</p>
-        </div>
+        <Card className="border-2 border-lark-200 dark:border-lark-800">
+          <CardHeader>
+            <div>
+              <Badge>Data plane</Badge>
+            </div>
+            <CardTitle className="mt-3 text-base">{t.safety.planes.dataTitle}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm leading-6 text-muted-foreground">{t.safety.planes.dataBody}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-2 border-dashed">
+          <CardHeader>
+            <div>
+              <Badge variant="secondary">Control plane</Badge>
+            </div>
+            <CardTitle className="mt-3 text-base">{t.safety.planes.controlTitle}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm leading-6 text-muted-foreground">{t.safety.planes.controlBody}</p>
+          </CardContent>
+        </Card>
       </div>
     </Section>
   );
@@ -78,13 +114,17 @@ export function FeaturesSection() {
       <SectionHeading eyebrow={t.features.eyebrow} title={t.features.title} subtitle={t.features.subtitle} />
       <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {t.features.items.map((f) => (
-          <div key={f.title} className="card group transition hover:-translate-y-0.5 hover:border-lark-300 hover:shadow-md">
-            <span className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-lark-500 to-lark-700 text-white shadow-sm transition group-hover:scale-105">
-              <Icon name={f.icon} className="h-6 w-6" />
-            </span>
-            <h3 className="mt-4 text-lg font-semibold text-slate-900 dark:text-white">{f.title}</h3>
-            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{f.body}</p>
-          </div>
+          <Card key={f.title} className="group transition hover:-translate-y-0.5 hover:shadow-md">
+            <CardHeader>
+              <span className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-lark-500 to-lark-700 text-white shadow-sm transition group-hover:scale-105">
+                <Icon name={f.icon} className="h-6 w-6" />
+              </span>
+              <CardTitle className="mt-4 text-lg">{f.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm leading-6 text-muted-foreground">{f.body}</p>
+            </CardContent>
+          </Card>
         ))}
       </div>
     </Section>
@@ -95,46 +135,41 @@ export function FeaturesSection() {
 export function CompareSection() {
   const { t } = useLocale();
   return (
-    <Section id="compare" className="bg-slate-50 dark:bg-slate-900/40">
+    <Section id="compare" className="bg-muted/40">
       <SectionHeading eyebrow={t.compare.eyebrow} title={t.compare.title} subtitle={t.compare.subtitle} />
-      <div className="mt-10 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-slate-200 dark:border-slate-800">
-              <th className="px-4 py-4 font-medium text-slate-400" />
-              <th className="px-4 py-4">
-                <span className="inline-flex items-center gap-1.5 font-semibold text-lark-700 dark:text-lark-300">
+      <div className="mt-10 overflow-hidden rounded-2xl border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead />
+              <TableHead>
+                <span className="inline-flex items-center gap-1.5 font-semibold text-primary">
                   <span className="h-2 w-2 rounded-full bg-lark-500" />
                   {t.compare.columns.us}
                 </span>
-              </th>
-              <th className="px-4 py-4 font-semibold text-slate-500 dark:text-slate-400">{t.compare.columns.them}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {t.compare.rows.map((row, i) => (
-              <tr
-                key={row.label}
-                className={i % 2 ? "bg-slate-50/60 dark:bg-slate-800/30" : ""}
-              >
-                <th scope="row" className="px-4 py-4 font-medium text-slate-700 dark:text-slate-200">
+              </TableHead>
+              <TableHead className="font-semibold text-muted-foreground">{t.compare.columns.them}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {t.compare.rows.map((row) => (
+              <TableRow key={row.label}>
+                <TableHead scope="row" className="font-medium text-foreground">
                   {row.label}
-                </th>
-                <td className="px-4 py-4 text-slate-700 dark:text-slate-200">
+                </TableHead>
+                <TableCell className="text-foreground">
                   <span className="inline-flex items-start gap-1.5">
-                    <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0 text-lark-500" fill="none" stroke="currentColor" strokeWidth={2.2} aria-hidden="true">
-                      <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-lark-500" />
                     {row.us}
                   </span>
-                </td>
-                <td className="px-4 py-4 text-slate-500 dark:text-slate-400">{row.them}</td>
-              </tr>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{row.them}</TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
-      <p className="mx-auto mt-6 max-w-3xl text-center text-sm leading-6 text-slate-500 dark:text-slate-400">
+      <p className="mx-auto mt-6 max-w-3xl text-center text-sm leading-6 text-muted-foreground">
         {t.compare.footnote}
       </p>
     </Section>
@@ -149,23 +184,31 @@ export function InstallSection() {
       <SectionHeading eyebrow={t.install.eyebrow} title={t.install.title} subtitle={t.install.subtitle} center />
       <div className="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-3">
         {t.install.steps.map((step) => (
-          <div key={step.title} className="card">
-            <h3 className="font-semibold text-lark-700 dark:text-lark-300">{step.title}</h3>
-            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{step.body}</p>
-          </div>
+          <Card key={step.title}>
+            <CardHeader>
+              <CardTitle className="text-base text-primary">{step.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm leading-6 text-muted-foreground">{step.body}</p>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
       <div className="mx-auto mt-10 flex max-w-4xl flex-wrap items-center justify-center gap-3">
-        <a href={`${GITHUB_URL}/releases`} target="_blank" rel="noreferrer" className="btn-primary">
-          {t.install.extensionCta}
-        </a>
-        <a href={`${GITHUB_URL}/tree/main/apps/agent`} target="_blank" rel="noreferrer" className="btn-ghost">
-          {t.install.agentCta}
-        </a>
-        <Link href="/docs#control-plane" className="btn-ghost">
-          {t.install.controlPlaneCta}
-        </Link>
+        <Button asChild>
+          <a href={`${GITHUB_URL}/releases`} target="_blank" rel="noreferrer">
+            {t.install.extensionCta}
+          </a>
+        </Button>
+        <Button asChild variant="outline">
+          <a href={`${GITHUB_URL}/tree/main/apps/agent`} target="_blank" rel="noreferrer">
+            {t.install.agentCta}
+          </a>
+        </Button>
+        <Button asChild variant="ghost">
+          <Link href="/docs#control-plane">{t.install.controlPlaneCta}</Link>
+        </Button>
       </div>
 
       <div className="mx-auto mt-8 max-w-2xl">
@@ -184,22 +227,24 @@ curl -fsSL https://raw.githubusercontent.com/appleweiping/visa-lark/main/apps/co
 export function DisclaimerSection() {
   const { t } = useLocale();
   return (
-    <Section id="disclaimer" className="border-t border-slate-200 bg-slate-50 py-16 dark:border-slate-800 dark:bg-slate-950">
-      <div className="mx-auto max-w-3xl rounded-2xl border border-feather-200 bg-feather-50 p-6 dark:border-feather-900/50 dark:bg-feather-900/10">
-        <h2 className="flex items-center gap-2 text-base font-bold text-feather-800 dark:text-feather-200">
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
-            <path d="M12 9v4M12 17h.01M10.3 3.9l-7.4 13A2 2 0 004.6 20h14.8a2 2 0 001.7-3l-7.4-13a2 2 0 00-3.4 0z" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+    <Section id="disclaimer" className="border-t bg-muted/40 py-16">
+      <Alert className="mx-auto max-w-3xl border-feather-200 bg-feather-50 dark:border-feather-900/50 dark:bg-feather-900/10">
+        <svg viewBox="0 0 24 24" className="h-5 w-5 text-feather-700 dark:text-feather-300" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
+          <path d="M12 9v4M12 17h.01M10.3 3.9l-7.4 13A2 2 0 004.6 20h14.8a2 2 0 001.7-3l-7.4-13a2 2 0 00-3.4 0z" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <h2 className="text-base font-bold text-feather-800 dark:text-feather-200">
           {t.disclaimer.title}
         </h2>
-        <div className="mt-4 space-y-3">
-          {t.disclaimer.body.map((para, i) => (
-            <p key={i} className="text-xs leading-5 text-feather-900/90 dark:text-feather-100/80">
-              {para}
-            </p>
-          ))}
-        </div>
-      </div>
+        <AlertDescription>
+          <div className="mt-2 flex flex-col gap-3">
+            {t.disclaimer.body.map((para, i) => (
+              <p key={i} className="text-xs leading-5 text-feather-900/90 dark:text-feather-100/80">
+                {para}
+              </p>
+            ))}
+          </div>
+        </AlertDescription>
+      </Alert>
     </Section>
   );
 }

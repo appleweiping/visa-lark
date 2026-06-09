@@ -1,7 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowRight, Check } from "lucide-react";
 import { useLocale } from "@/lib/locale-context";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   WhatSection,
   SafetySection,
@@ -11,8 +15,6 @@ import {
   DisclaimerSection,
 } from "@/components/landing-sections";
 
-const GITHUB_URL = "https://github.com/appleweiping/visa-lark";
-
 export default function LandingPage() {
   const { t } = useLocale();
 
@@ -20,40 +22,43 @@ export default function LandingPage() {
     <>
       {/* ===================== Hero ===================== */}
       <section className="relative overflow-hidden bg-grid">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-lark-50/60 via-white to-white dark:from-lark-950/40 dark:via-slate-950 dark:to-slate-950" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-lark-50/60 via-background to-background dark:from-lark-950/40" />
         <div className="pointer-events-none absolute -top-24 left-1/2 h-72 w-[42rem] -translate-x-1/2 rounded-full bg-lark-300/30 blur-3xl dark:bg-lark-700/20" />
         <div className="container-page relative grid gap-12 py-20 sm:py-28 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
           <div className="animate-fade-up">
-            <span className="badge bg-lark-100 text-lark-700 dark:bg-lark-900/60 dark:text-lark-200">
+            <Badge variant="secondary" className="gap-1.5 rounded-full">
               <span className="h-1.5 w-1.5 rounded-full bg-lark-500" /> {t.hero.badge}
-            </span>
-            <h1 className="mt-5 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl dark:text-white">
+            </Badge>
+            <h1 className="mt-5 text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
               {t.hero.title}
             </h1>
-            <p className="mt-3 text-xl font-medium text-lark-700 dark:text-lark-300">{t.hero.subtitle}</p>
-            <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600 dark:text-slate-300">{t.hero.tagline}</p>
-            <p className="mt-4 max-w-xl rounded-xl border border-feather-200 bg-feather-50 px-4 py-3 text-sm leading-6 text-feather-800 dark:border-feather-900/60 dark:bg-feather-900/20 dark:text-feather-200">
-              {t.hero.honestNote}
-            </p>
+            <p className="mt-3 text-xl font-medium text-primary">{t.hero.subtitle}</p>
+            <p className="mt-5 max-w-xl text-lg leading-8 text-muted-foreground">{t.hero.tagline}</p>
+            <Alert className="mt-4 max-w-xl border-feather-200 bg-feather-50 text-feather-800 dark:border-feather-900/60 dark:bg-feather-900/20 dark:text-feather-200">
+              <AlertDescription className="text-feather-800 dark:text-feather-200">
+                {t.hero.honestNote}
+              </AlertDescription>
+            </Alert>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link href="/#install" className="btn-primary">
-                {t.hero.ctaInstall}
-              </Link>
-              <Link href="/demo" className="btn-ghost">
-                {t.hero.ctaDemo}
-              </Link>
-              <Link href="/docs" className="btn-ghost">
-                {t.hero.ctaDocs}
-              </Link>
+              <Button asChild size="lg">
+                <Link href="/#install">{t.hero.ctaInstall}</Link>
+              </Button>
+              <Button asChild variant="outline" size="lg">
+                <Link href="/demo">{t.hero.ctaDemo}</Link>
+              </Button>
+              <Button asChild variant="ghost" size="lg">
+                <Link href="/docs">
+                  {t.hero.ctaDocs}
+                  <ArrowRight data-icon="inline-end" />
+                </Link>
+              </Button>
             </div>
 
-            <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-500 dark:text-slate-400">
+            <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
               {t.hero.trustRow.map((item) => (
                 <li key={item} className="flex items-center gap-1.5">
-                  <svg viewBox="0 0 24 24" className="h-4 w-4 text-lark-500" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                    <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <Check className="h-4 w-4 text-lark-500" />
                   {item}
                 </li>
               ))}
@@ -64,7 +69,7 @@ export default function LandingPage() {
           <div className="relative animate-fade-up">
             <div className="relative mx-auto max-w-md">
               <div className="absolute -inset-4 rounded-3xl bg-gradient-to-tr from-lark-400/20 to-feather-300/20 blur-2xl" />
-              <div className="card relative overflow-hidden p-0">
+              <div className="relative overflow-hidden rounded-2xl border bg-card shadow-sm">
                 {/* Intentional <img> placeholders per spec — real art (/banner.png,
                     /mascot.png) is generated later. Kept as plain <img> so the
                     placeholders work without next/image's optimizer. */}

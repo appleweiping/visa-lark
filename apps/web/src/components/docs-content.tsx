@@ -2,6 +2,7 @@
 
 import { useLocale } from "@/lib/locale-context";
 import type { Locale } from "@/lib/i18n";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface DocSection {
   id: string;
@@ -209,9 +210,9 @@ export function DocsContent() {
     <div className="container-page py-12">
       <div className="lg:grid lg:grid-cols-[1fr_220px] lg:gap-12">
         <div>
-          <header className="border-b border-slate-200 pb-8 dark:border-slate-800">
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{t.docs.title}</h1>
-            <p className="mt-2 text-slate-600 dark:text-slate-300">{t.docs.subtitle}</p>
+          <header className="border-b pb-8">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">{t.docs.title}</h1>
+            <p className="mt-2 text-muted-foreground">{t.docs.subtitle}</p>
           </header>
 
           <div className="prose-doc max-w-none">
@@ -229,13 +230,13 @@ export function DocsContent() {
         {/* TOC */}
         <aside className="hidden lg:block">
           <div className="sticky top-24">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{t.docs.tocTitle}</p>
-            <nav className="mt-3 space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t.docs.tocTitle}</p>
+            <nav className="mt-3 flex flex-col gap-2">
               {sections.map((s) => (
                 <a
                   key={s.id}
                   href={`#${s.id}`}
-                  className="block text-sm text-slate-500 transition hover:text-lark-600 dark:text-slate-400"
+                  className="block text-sm text-muted-foreground transition hover:text-primary"
                 >
                   {s.title}
                 </a>
@@ -278,9 +279,11 @@ function DocBlockView({ block }: { block: DocBlock }) {
       );
     case "note":
       return (
-        <p className="!mt-4 rounded-lg border border-lark-200 bg-lark-50 px-4 py-3 text-sm !text-lark-800 dark:border-lark-800 dark:bg-lark-950/40 dark:!text-lark-200">
-          {block.text}
-        </p>
+        <Alert className="!mt-4 border-lark-200 bg-lark-50 dark:border-lark-800 dark:bg-lark-950/40">
+          <AlertDescription className="text-sm text-lark-800 dark:text-lark-200">
+            {block.text}
+          </AlertDescription>
+        </Alert>
       );
   }
 }
