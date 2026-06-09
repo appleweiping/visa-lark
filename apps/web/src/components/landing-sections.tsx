@@ -33,7 +33,7 @@ export function WhatSection() {
       <SectionHeading eyebrow={t.what.eyebrow} title={t.what.title} subtitle={t.what.body} />
       <div className="mt-12 grid gap-6 md:grid-cols-3">
         {t.what.points.map((p) => (
-          <Card key={p.title} className="transition hover:-translate-y-0.5 hover:shadow-md">
+          <Card key={p.title} className="card-premium">
             <CardHeader>
               <CardTitle className="text-lg">{p.title}</CardTitle>
             </CardHeader>
@@ -57,7 +57,7 @@ export function SafetySection() {
 
       <div className="mt-12 grid gap-6 lg:grid-cols-3">
         {t.safety.pillars.map((pillar, i) => (
-          <Card key={pillar.title} className="flex flex-col">
+          <Card key={pillar.title} className="card-premium flex flex-col">
             <CardHeader>
               <span className="grid h-11 w-11 place-items-center rounded-xl bg-lark-100 text-lark-700 dark:bg-lark-900/50 dark:text-lark-300">
                 <Icon name={pillarIcons[i] ?? "shield"} className="h-6 w-6" />
@@ -114,7 +114,7 @@ export function FeaturesSection() {
       <SectionHeading eyebrow={t.features.eyebrow} title={t.features.title} subtitle={t.features.subtitle} />
       <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {t.features.items.map((f) => (
-          <Card key={f.title} className="group transition hover:-translate-y-0.5 hover:shadow-md">
+          <Card key={f.title} className="card-premium group">
             <CardHeader>
               <span className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-lark-500 to-lark-700 text-white shadow-sm transition group-hover:scale-105">
                 <Icon name={f.icon} className="h-6 w-6" />

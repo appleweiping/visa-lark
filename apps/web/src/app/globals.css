@@ -141,3 +141,52 @@
     linear-gradient(to bottom, rgba(100, 116, 139, 0.08) 1px, transparent 1px);
   background-size: 40px 40px;
 }
+
+/* Premium hero mesh — soft lark + feather glows. */
+.hero-mesh {
+  background:
+    radial-gradient(55% 50% at 12% 8%, hsl(var(--primary) / 0.14), transparent 60%),
+    radial-gradient(40% 45% at 95% 0%, hsl(28 100% 53% / 0.1), transparent 55%),
+    radial-gradient(50% 55% at 80% 92%, hsl(var(--primary) / 0.08), transparent 60%);
+}
+
+/* Glow primary CTA — lark halo. */
+.glow-primary {
+  box-shadow:
+    0 1px 0 0 hsl(var(--primary-foreground) / 0.12) inset,
+    0 8px 24px -6px hsl(var(--primary) / 0.45),
+    0 2px 6px -2px hsl(var(--primary) / 0.35);
+}
+
+/* Card with subtle sheen + lift on hover. */
+.card-premium {
+  position: relative;
+  background: hsl(var(--card));
+  box-shadow:
+    0 1px 0 0 hsl(0 0% 100% / 0.6) inset,
+    0 1px 2px 0 hsl(var(--foreground) / 0.04),
+    0 12px 32px -16px hsl(var(--foreground) / 0.16);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-premium:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 1px 0 0 hsl(0 0% 100% / 0.6) inset,
+    0 2px 4px 0 hsl(var(--foreground) / 0.05),
+    0 22px 48px -20px hsl(var(--foreground) / 0.24);
+}
+
+.dark .card-premium {
+  box-shadow:
+    0 1px 0 0 hsl(0 0% 100% / 0.04) inset,
+    0 1px 2px 0 hsl(0 0% 0% / 0.4),
+    0 12px 32px -16px hsl(0 0% 0% / 0.6);
+}
+
+.gradient-text {
+  background: linear-gradient(100deg, hsl(var(--foreground)), hsl(var(--primary)) 60%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}

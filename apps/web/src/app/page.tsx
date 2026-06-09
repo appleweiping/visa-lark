@@ -21,8 +21,8 @@ export default function LandingPage() {
   return (
     <>
       {/* ===================== Hero ===================== */}
-      <section className="relative overflow-hidden bg-grid">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-lark-50/60 via-background to-background dark:from-lark-950/40" />
+      <section className="relative overflow-hidden bg-grid hero-mesh">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-background/30 to-background" />
         <div className="pointer-events-none absolute -top-24 left-1/2 h-72 w-[42rem] -translate-x-1/2 rounded-full bg-lark-300/30 blur-3xl dark:bg-lark-700/20" />
         <div className="container-page relative grid gap-12 py-20 sm:py-28 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
           <div className="animate-fade-up">
@@ -30,7 +30,7 @@ export default function LandingPage() {
               <span className="h-1.5 w-1.5 rounded-full bg-lark-500" /> {t.hero.badge}
             </Badge>
             <h1 className="mt-5 text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-              {t.hero.title}
+              <span className="gradient-text">{t.hero.title}</span>
             </h1>
             <p className="mt-3 text-xl font-medium text-primary">{t.hero.subtitle}</p>
             <p className="mt-5 max-w-xl text-lg leading-8 text-muted-foreground">{t.hero.tagline}</p>
@@ -41,7 +41,7 @@ export default function LandingPage() {
             </Alert>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Button asChild size="lg">
+              <Button asChild size="lg" className="glow-primary">
                 <Link href="/#install">{t.hero.ctaInstall}</Link>
               </Button>
               <Button asChild variant="outline" size="lg">
