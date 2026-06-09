@@ -23,6 +23,22 @@ import type {
   Session,
 } from "./types.js";
 
+/** Map a booking result status to a poll outcome for the fail-safe machine (HIGH-3). */
+function bookingResultToOutcome(status: BookingResult["status"]): PollOutcome {
+  switch (status) {
+    case "recaptcha_required":
+      return "challenge"; // STOP — never re-POST through a challenge
+    case "confirmed":
+    case "slot_gone":
+    case "dry_run":
+    case "interlock_blocked":
+      return "ok"; // benign — a real round-trip happened, no error to escalate
+    case "failed":
+    default:
+      return "network_error";
+  }
+}
+
 /**
  * The monitor engine: one pure-ish orchestration step that BOTH data planes
  * (browser extension + local agent) drive. It does not own a timer — the host
@@ -47,6 +63,13 @@ export interface EngineDeps {
   /** Optional clock + rng injection for tests. */
   now?: () => number;
   rng?: () => number;
+  /**
+   * Optional GLOBAL (cross-monitor) daily request budget (MEDIUM-1). The
+   * per-monitor cap lives in BackoffState; this is the account-wide ceiling so
+   * N monitors can't multiply total load N×. The host supplies the current
+   * 24h request count and the ceiling; the engine refuses to poll when over.
+   */
+  getGlobalRequestBudget?: () => { used: number; cap: number };
 }
 
 export interface RunResult {
@@ -122,6 +145,18 @@ export async function runMonitorOnce(
     };
   }
 
+  // 1b) GLOBAL cross-monitor request budget (MEDIUM-1). Even if this monitor's
+  // own cap is fine, refuse to poll when the account-wide daily ceiling is hit.
+  const budget = deps.getGlobalRequestBudget?.();
+  if (budget && budget.used >= budget.cap) {
+    return {
+      outcome: "empty",
+      next: { kind: "schedule", delayMs: Math.max(60_000, jitteredInterval(profile, rng)) },
+      backoff,
+      note: `Waiting (global daily request budget ${budget.used}/${budget.cap} reached).`,
+    };
+  }
+
   // 2) Poll available days.
   const day = await deps.adapter.getAvailableDays(monitor, session);
   const newBackoff = recordOutcome(backoff, day.outcome, now, day.requestCount);
@@ -175,7 +210,7 @@ export async function runMonitorOnce(
   const confirmUrl = deps.confirmUrlBase
     ? `${deps.confirmUrlBase}?m=${encodeURIComponent(monitor.id)}&f=${encodeURIComponent(
         earliest.facilityId,
-      )}&d=${encodeURIComponent(earliest.date)}`
+      )}&d=${encodeURIComponent(earliest.date)}${monitor.expedite ? "&x=1" : ""}`
     : undefined;
 
   let bookingResult: BookingResult | undefined;
@@ -236,6 +271,11 @@ export async function runMonitorOnce(
           { facilityId: earliest.facilityId, date: earliest.date, time, monitorId: monitor.id },
           session,
         );
+        // HIGH-3: the reschedule POST is real traffic to usvisa-info — count it
+        // and feed its outcome to the fail-safe machine. A recaptcha/challenge on
+        // booking must STOP, never silently let the next cycle re-POST through it.
+        const bookingOutcome = bookingResultToOutcome(bookingResult.status);
+        workingBackoff = recordOutcome(workingBackoff, bookingOutcome, now, 1);
         deps.onBooked?.(bookingResult);
         await dispatch(deps.channels, {
           title:
@@ -247,6 +287,18 @@ export async function runMonitorOnce(
           url: confirmUrl,
           kind: "booked",
         });
+        if (bookingOutcome === "challenge") {
+          const action = decideNextAction(workingBackoff, profile, now);
+          if (action.kind === "stop") {
+            return {
+              outcome: "challenge",
+              next: { kind: "stopped", reason: action.reason },
+              backoff: workingBackoff,
+              note: "Stopped: reschedule hit a security challenge.",
+              bookingResult,
+            };
+          }
+        }
       } else {
         // Interlock blocked or dry-run or needs human confirm → notify, fall back.
         bookingResult = {

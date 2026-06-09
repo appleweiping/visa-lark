@@ -270,3 +270,60 @@ describe("runMonitorOnce — daily request accounting (H2)", () => {
     expect(r.backoff.recentPolls).toHaveLength(3);
   });
 });
+
+describe("runMonitorOnce — reschedule fail-safe (HIGH-3)", () => {
+  it("STOPS when the reschedule POST returns recaptcha_required (never retry-through)", async () => {
+    const m = { ...monitor, mode: "auto" as const };
+    const adapter: VisaAdapter = {
+      id: "f",
+      displayName: "f",
+      validateSession: async () => "healthy",
+      getAvailableDays: async () => ({
+        outcome: "ok",
+        dates: [{ date: "2026-08-01", facilityId: "95" }],
+        earliest: { date: "2026-08-01", facilityId: "95" },
+        requestCount: 1,
+      }),
+      getTimes: async (_m, date, facilityId) => ({ outcome: "ok", date, facilityId, times: ["09:00"] }),
+      reschedule: async () => ({ status: "recaptcha_required", message: "captcha" }),
+    };
+    const cfg = { ...DEFAULT_AUTOBOOK_CONFIG, allowedFacilityIds: ["95"], confirmFirstN: 0 };
+    const r = await runMonitorOnce(
+      m,
+      session,
+      POLL_PROFILES.patient!,
+      cfg,
+      initBackoff(),
+      baseDeps(adapter, captureChannel().channel),
+    );
+    expect(r.next.kind).toBe("stopped");
+    expect(r.outcome).toBe("challenge");
+  });
+});
+
+describe("runMonitorOnce — global request budget (MEDIUM-1)", () => {
+  it("refuses to poll when the global daily budget is exhausted", async () => {
+    const adapter = fakeAdapter({
+      outcome: "ok",
+      dates: [{ date: "2026-08-01", facilityId: "95" }],
+      earliest: { date: "2026-08-01", facilityId: "95" },
+    });
+    const getAvailSpy = vi.spyOn(adapter, "getAvailableDays");
+    const r = await runMonitorOnce(monitor, session, POLL_PROFILES.patient!, DEFAULT_AUTOBOOK_CONFIG, initBackoff(), {
+      ...baseDeps(adapter, captureChannel().channel),
+      getGlobalRequestBudget: () => ({ used: 500, cap: 300 }),
+    });
+    expect(getAvailSpy).not.toHaveBeenCalled(); // never hit the network
+    expect(r.note).toMatch(/global daily request budget/);
+  });
+
+  it("polls normally when under the global budget", async () => {
+    const adapter = fakeAdapter({ outcome: "empty", dates: [], requestCount: 1 });
+    const getAvailSpy = vi.spyOn(adapter, "getAvailableDays");
+    await runMonitorOnce(monitor, session, POLL_PROFILES.patient!, DEFAULT_AUTOBOOK_CONFIG, initBackoff(), {
+      ...baseDeps(adapter, captureChannel().channel),
+      getGlobalRequestBudget: () => ({ used: 10, cap: 300 }),
+    });
+    expect(getAvailSpy).toHaveBeenCalled();
+  });
+});

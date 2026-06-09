@@ -73,9 +73,10 @@ async function main() {
     const result = await runMonitorOnce(monitor, session, profile, cfg.autoBook, backoff, {
       adapter,
       channels,
-      confirmUrlBase: cfg.controlPlaneUrl
-        ? `${cfg.controlPlaneUrl.replace(/\/$/, "")}/confirm`
-        : undefined,
+      // The agent has no local confirm UI and the control plane can't book
+      // (zero credentials), so a confirm deep link would be dead (HIGH-2).
+      // Agent only emits notify/auto — `confirm` is downgraded to notify
+      // (see config normalization). No confirmUrlBase here.
       getCurrentAppointment: () => cfg.currentAppointment,
       getAutoBookContext: () => ({
         bookingsMade: bk.bookingsMade,

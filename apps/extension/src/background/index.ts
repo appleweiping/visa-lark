@@ -5,9 +5,12 @@ import {
   resetBackoff,
   runMonitorOnce,
   dispatch,
+  decideNextAction,
+  recordOutcome,
   type Monitor,
   type Session,
   type RunResult,
+  type PollOutcome,
 } from "@visa-lark/shared";
 import { UsVisaInfoAdapter } from "@visa-lark/adapter-usvisa-info";
 import { buildChannels } from "@visa-lark/notify";
@@ -54,8 +57,24 @@ function channelsFor(state: ExtState) {
     : configured;
 }
 
+/** Monitors currently mid-tick — prevents a `runNow` and a scheduled alarm
+ * from polling the same monitor concurrently (HIGH-1: avoids burst + double-book). */
+const inFlight = new Set<string>();
+
 /** Run one monitor and schedule the next alarm based on the result. */
 async function tick(monitorId: string): Promise<void> {
+  if (inFlight.has(monitorId)) return; // a tick for this monitor is already running
+  inFlight.add(monitorId);
+  try {
+    await tickInner(monitorId);
+  } finally {
+    inFlight.delete(monitorId);
+  }
+}
+
+const DAY_MS = 24 * 60 * 60_000;
+
+async function tickInner(monitorId: string): Promise<void> {
   const state = await loadState();
   const monitor = state.monitors.find((m) => m.id === monitorId);
   if (!monitor || !monitor.enabled) return;
@@ -74,7 +93,13 @@ async function tick(monitorId: string): Promise<void> {
   const profile = POLL_PROFILES[monitor.pollProfile] ?? POLL_PROFILES[DEFAULT_PROFILE]!;
   const backoff = state.backoff[monitorId] ?? initBackoff();
   const bk = state.bookkeeping[monitorId] ?? { bookingsMade: 0, bookingTimes: [] };
-  const dayAgo = Date.now() - 24 * 60 * 60_000;
+  const dayAgo = Date.now() - DAY_MS;
+  // Track DELTAS so we apply them to FRESH state inside the mutate, instead of
+  // clobbering with values derived from a possibly-stale base (HIGH-1).
+  let bookingDelta = 0;
+  const newBookingTimes: number[] = [];
+  const baseRequests = backoff.recentPolls.length;
+  const globalCfg = POLL_PROFILES[monitor.pollProfile] ?? POLL_PROFILES[DEFAULT_PROFILE]!;
 
   let result: RunResult;
   try {
@@ -90,36 +115,65 @@ async function tick(monitorId: string): Promise<void> {
         bookingsMade: bk.bookingsMade,
         bookingsToday: bk.bookingTimes.filter((t) => t > dayAgo).length,
       }),
+      getGlobalRequestBudget: () => ({
+        used: state.globalPolls.filter((t) => t > dayAgo).length,
+        // account-wide ceiling = 1.5× a single profile's cap (generous but bounded)
+        cap: Math.round(globalCfg.dailyCap * 1.5),
+      }),
       onObservation: (dates, at) => {
-        void relayObservation(state, monitorId, dates, at);
+        void relayObservation(state.controlPlaneUrl, state.controlPlaneToken, monitorId, dates, at);
       },
       onBooked: (r) => {
         if (r.status === "confirmed") {
-          bk.bookingsMade += 1;
-          bk.bookingTimes.push(Date.now());
+          bookingDelta += 1;
+          newBookingTimes.push(Date.now());
         }
       },
     });
   } catch (e) {
-    await appendLog({ at: Date.now(), monitorId, outcome: "error", note: String(e) });
-    // schedule a conservative retry
-    await chrome.alarms.create(alarmName(monitorId), { delayInMinutes: 10 });
+    // L4: a thrown error must still escalate backoff (toward the STOP threshold),
+    // not loop a flat 10-min retry forever. Record a network_error and honor the
+    // resulting cooldown for the next-run delay.
+    let nextBo = backoff;
+    await mutate(async (fresh) => {
+      const cur = fresh.backoff[monitorId] ?? initBackoff();
+      nextBo = recordOutcome(cur, "network_error", Date.now(), 1);
+      fresh.backoff[monitorId] = nextBo;
+      fresh.logs.push({ at: Date.now(), monitorId, outcome: "error", note: String(e) });
+      return fresh;
+    });
+    const action = decideNextAction(nextBo, profile, Date.now());
+    if (action.kind === "stop") {
+      await mutate(async (fresh) => {
+        fresh.monitors = fresh.monitors.map((m) => (m.id === monitorId ? { ...m, enabled: false } : m));
+        return fresh;
+      });
+      await chrome.alarms.clear(alarmName(monitorId));
+      return;
+    }
+    const retryMin =
+      action.kind === "wait" ? Math.max(1, (action.untilMs - Date.now()) / 60_000) : 10;
+    await chrome.alarms.create(alarmName(monitorId), { delayInMinutes: retryMin });
     return;
   }
 
-  // Persist new backoff + bookkeeping + log atomically (H3 — serialized write).
+  // How many real requests did this cycle issue (days + any times/reschedule)?
+  const requestsThisCycle = Math.max(0, result.backoff.recentPolls.length - baseRequests);
   const stopped = result.next.kind === "stopped";
+
+  // Apply ALL state changes atomically against FRESH state using deltas (HIGH-1).
   await mutate(async (fresh) => {
     fresh.backoff[monitorId] = result.backoff;
-    fresh.bookkeeping[monitorId] = bk;
-    fresh.logs.push({
-      at: Date.now(),
-      monitorId,
-      outcome: result.outcome,
-      note: result.note,
-    });
+    const fbk = fresh.bookkeeping[monitorId] ?? { bookingsMade: 0, bookingTimes: [] };
+    fbk.bookingsMade += bookingDelta;
+    fbk.bookingTimes.push(...newBookingTimes);
+    fresh.bookkeeping[monitorId] = fbk;
+    // global request budget: append this cycle's request stamps, prune >24h
+    const now = Date.now();
+    const stamp = Array.from({ length: requestsThisCycle }, () => now);
+    fresh.globalPolls = [...fresh.globalPolls.filter((t) => t > now - DAY_MS), ...stamp];
+    fresh.logs.push({ at: now, monitorId, outcome: result.outcome, note: result.note });
     if (stopped) {
-      // Disable the monitor so it doesn't silently keep retrying a banned/expired session.
       fresh.monitors = fresh.monitors.map((m) =>
         m.id === monitorId ? { ...m, enabled: false } : m,
       );
@@ -137,18 +191,19 @@ async function tick(monitorId: string): Promise<void> {
 }
 
 async function relayObservation(
-  state: ExtState,
+  controlPlaneUrl: string | undefined,
+  controlPlaneToken: string | undefined,
   monitorId: string,
   dates: { date: string; facilityId: string }[],
   at: number,
 ): Promise<void> {
-  if (!state.controlPlaneUrl || !state.controlPlaneToken || dates.length === 0) return;
+  if (!controlPlaneUrl || !controlPlaneToken || dates.length === 0) return;
   try {
-    await fetch(`${state.controlPlaneUrl.replace(/\/$/, "")}/api/observations`, {
+    await fetch(`${controlPlaneUrl.replace(/\/$/, "")}/api/observations`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${state.controlPlaneToken}`,
+        Authorization: `Bearer ${controlPlaneToken}`,
       },
       body: JSON.stringify({ monitorId, dates, at }),
     });
@@ -157,7 +212,39 @@ async function relayObservation(
   }
 }
 
-/** (Re)arm alarms for all enabled monitors. */
+/**
+ * Guard for the human-driven confirm path (MEDIUM-2): refuse to touch usvisa-info
+ * when the monitor is in a hard cooldown (challenge/ban) or the account-wide
+ * daily request budget is exhausted — even though a human initiated it.
+ */
+function checkConfirmGuard(state: ExtState, monitorId: string): { ok: true } | { ok: false; reason: string } {
+  const now = Date.now();
+  const bo = state.backoff[monitorId] ?? initBackoff();
+  const profile =
+    POLL_PROFILES[state.monitors.find((m) => m.id === monitorId)?.pollProfile ?? DEFAULT_PROFILE] ??
+    POLL_PROFILES[DEFAULT_PROFILE]!;
+  const action = decideNextAction(bo, profile, now);
+  if (action.kind === "stop") {
+    return { ok: false, reason: "该监控处于安全冷却中（曾遇验证拦截/限制），请稍后再试或重新同步会话。" };
+  }
+  const dayAgo = now - DAY_MS;
+  const used = state.globalPolls.filter((t) => t > dayAgo).length;
+  if (used >= Math.round(profile.dailyCap * 1.5)) {
+    return { ok: false, reason: "今日请求已达账号安全上限，请明日再试。" };
+  }
+  return { ok: true };
+}
+
+/** Record one confirm-path request into the monitor backoff + global budget (MEDIUM-2). */
+async function recordConfirmRequest(monitorId: string, outcome: PollOutcome): Promise<void> {
+  const now = Date.now();
+  await mutate(async (s) => {
+    const bo = s.backoff[monitorId] ?? initBackoff();
+    s.backoff[monitorId] = recordOutcome(bo, outcome, now, 1);
+    s.globalPolls = [...s.globalPolls.filter((t) => t > now - DAY_MS), now];
+    return s;
+  });
+}
 async function rearmAll(): Promise<void> {
   const state = await loadState();
   const existing = await chrome.alarms.getAll();
@@ -171,9 +258,13 @@ async function rearmAll(): Promise<void> {
       await chrome.alarms.create(alarmName(m.id), { delayInMinutes: jitter });
     }
   }
-  // Heartbeat (M3): a daily low-priority "still alive" ping so the user can tell
-  // "monitor alive, no slots" apart from "monitor died". Only if a channel exists.
-  await chrome.alarms.create(HEARTBEAT_ALARM, { periodInMinutes: 24 * 60, delayInMinutes: 24 * 60 });
+  // Heartbeat (M3): a daily low-priority "still alive" ping. Only (re)create it
+  // if it doesn't already exist, so frequent rearmAll calls (every settings edit)
+  // don't keep pushing the 24h delay out and prevent it from ever firing (MEDIUM-3).
+  const existingHb = await chrome.alarms.get(HEARTBEAT_ALARM);
+  if (!existingHb) {
+    await chrome.alarms.create(HEARTBEAT_ALARM, { periodInMinutes: 24 * 60, delayInMinutes: 24 * 60 });
+  }
 }
 
 async function sendHeartbeat(): Promise<void> {
@@ -247,21 +338,42 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           sendResponse({ ok: false, error: "no session context" });
           break;
         }
+        // MEDIUM-2: the confirm path is real traffic — honor the monitor's hard
+        // cooldown (challenge/ban) and the global daily budget rather than
+        // hammering usvisa-info outside the safety system.
+        const guard = checkConfirmGuard(state, msg.monitorId);
+        if (!guard.ok) {
+          sendResponse({ ok: false, error: guard.reason });
+          break;
+        }
         const monitor =
           state.monitors.find((m) => m.id === msg.monitorId) ??
-          ({ expedite: false } as never);
+          // If the monitor was deleted, fall back to the expedite flag carried
+          // in the confirm link (L5) so we query the correct calendar.
+          ({ expedite: !!msg.expedite } as never);
         const times = await adapter.getTimes(monitor, msg.date, msg.facilityId, session);
+        await recordConfirmRequest(msg.monitorId, times.outcome);
         sendResponse({ ok: true, times });
         break;
       }
       case "confirmBook": {
         // The HUMAN clicked "confirm" — book using the warm browser session (C1).
         // This is human-in-the-loop, so it does NOT run the unattended auto-book
-        // interlocks; the user explicitly chose this slot. We still fail safe.
+        // interlocks; the user explicitly chose this slot. We still fail safe and
+        // still honor the kill switch + hard cooldown + global budget (MEDIUM-2).
         const state = await loadState();
         const session = buildSession(state);
         if (!session) {
           sendResponse({ ok: false, error: "会话未同步，请先在弹窗中同步会话。" });
+          break;
+        }
+        if (state.autoBook.killSwitch) {
+          sendResponse({ ok: false, error: "预约总开关（kill switch）已开启，已拒绝改期。" });
+          break;
+        }
+        const guard = checkConfirmGuard(state, msg.monitorId);
+        if (!guard.ok) {
+          sendResponse({ ok: false, error: guard.reason });
           break;
         }
         const result = await adapter.reschedule(
@@ -272,6 +384,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
             monitorId: msg.monitorId,
           },
           session,
+        );
+        await recordConfirmRequest(
+          msg.monitorId,
+          result.status === "recaptcha_required" ? "challenge" : "ok",
         );
         // On confirmed booking, update the user's current appointment locally.
         if (result.status === "confirmed") {

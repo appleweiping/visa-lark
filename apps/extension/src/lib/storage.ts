@@ -29,6 +29,8 @@ export interface ExtState {
   backoff: Record<string, BackoffState>;
   /** Per-monitor bookkeeping for interlocks. */
   bookkeeping: Record<string, { bookingsMade: number; bookingTimes: number[] }>;
+  /** Global (cross-monitor) request timestamps for the account-wide daily cap (MEDIUM-1). */
+  globalPolls: number[];
   logs: PollLogEntry[];
   /** Optional control-plane URL to relay observations/notifications. */
   controlPlaneUrl?: string;
@@ -60,6 +62,7 @@ const DEFAULT_STATE: ExtState = {
   },
   backoff: {},
   bookkeeping: {},
+  globalPolls: [],
   logs: [],
   browserNotifications: true,
 };

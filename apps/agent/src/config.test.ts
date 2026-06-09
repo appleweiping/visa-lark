@@ -59,6 +59,45 @@ describe("agent config", () => {
     expect(cfg.autoBook.minImprovementDays).toBe(7);
     expect(cfg.autoBook.confirmFirstN).toBe(1);
   });
+
+  it("downgrades confirm mode to notify on the agent (HIGH-2 — no dead button)", () => {
+    const p = tmpConfig({
+      session: { cookie: "c", embassyCode: "en-cn", scheduleId: "1" },
+      monitors: [
+        {
+          id: "m1",
+          facilityIds: ["95"],
+          visaType: "B1/B2",
+          dowFilter: [],
+          expedite: false,
+          mode: "confirm",
+          pollProfile: "patient",
+          enabled: true,
+        },
+      ],
+    });
+    const cfg = loadConfig(p);
+    expect(cfg.monitors[0]!.mode).toBe("notify");
+  });
+
+  it("preserves auto mode on the agent", () => {
+    const p = tmpConfig({
+      session: { cookie: "c", embassyCode: "en-cn", scheduleId: "1" },
+      monitors: [
+        {
+          id: "m1",
+          facilityIds: ["95"],
+          visaType: "B1/B2",
+          dowFilter: [],
+          expedite: false,
+          mode: "auto",
+          pollProfile: "patient",
+          enabled: true,
+        },
+      ],
+    });
+    expect(loadConfig(p).monitors[0]!.mode).toBe("auto");
+  });
 });
 
 describe("ip-guard classification (via shared)", () => {

@@ -8,7 +8,7 @@
 
 *Open-source, account-safe US visa appointment monitor. Zero stored credentials. Zero evasion. No proxy arms race.*
 
-[![tests](https://img.shields.io/badge/tests-83%20passing-2fae6a)]() [![license](https://img.shields.io/badge/license-Apache--2.0-6b8cff)](./LICENSE) [![made with](https://img.shields.io/badge/TypeScript-strict-3178c6)]()
+[![tests](https://img.shields.io/badge/tests-89%20passing-2fae6a)]() [![license](https://img.shields.io/badge/license-Apache--2.0-6b8cff)](./LICENSE) [![made with](https://img.shields.io/badge/TypeScript-strict-3178c6)]()
 
 [功能](#-功能-features) · [它如何保护你的账号](#-它如何保护你的账号-the-safety-model) · [安装](#-安装-install) · [对比 qmq](#-诚实对比-honest-comparison) · [免责声明](#%EF%B8%8F-免责声明-disclaimer)
 
@@ -92,6 +92,20 @@ cp apps/agent/visalark.config.example.json apps/agent/visalark.config.json
 # 编辑：粘贴你从已登录浏览器导出的 _yatri_session cookie + 领区 + 行程号 + 通知渠道
 node apps/agent/dist/index.js apps/agent/visalark.config.json
 ```
+
+<details>
+<summary><strong>如何导出 _yatri_session cookie（图文步骤）</strong></summary>
+
+1. 在 Chrome/Edge 正常登录 `ais.usvisa-info.com`，进入预约/改期页面。
+2. 按 `F12` 打开开发者工具 → 顶部选 **Application（应用）** 标签。
+3. 左侧 **Storage → Cookies → https://ais.usvisa-info.com**。
+4. 找到名为 **`_yatri_session`** 的一行，复制它的 **Value**。
+5. 在 `visalark.config.json` 的 `session.cookie` 里填 `_yatri_session=<你复制的值>`。
+6. `embassyCode` 和 `scheduleId` 来自你的排期页 URL：
+   `…/{embassyCode}/niv/schedule/{scheduleId}/appointment`（如 `en-cn` 和 `12345678`）。
+7. `userAgent` 建议填你浏览器的 UA（开发者工具 Network 里任意请求的 `User-Agent`），让指纹一致。
+
+> cookie 会过期。过期后 agent 会停手并通知你，重复上面步骤刷新即可。</details>
 > ⚠️ 在<strong>你家里的网络</strong>跑（家用电脑/树莓派），<strong>不要</strong>跑在云服务器上 —— 见上面的安全模型。Agent 会自动检测并拒绝在机房 IP 上启动。
 
 ### 可选：控制面板（历史/热力图/通知中转，零凭证）
@@ -116,12 +130,12 @@ node apps/agent/dist/index.js apps/agent/visalark.config.json
 ## 🧩 架构 Monorepo
 
 ```
-packages/shared              # 适配器无关的核心：类型 + 引擎 + 安全 + 联锁 + 通知接口（49 tests）
+packages/shared              # 适配器无关的核心：类型 + 引擎 + 安全 + 联锁 + 通知接口（36 tests）
 packages/adapter-usvisa-info # 唯一接触 usvisa-info 的代码：端点/解析/改期/失败即停（16 tests）
 packages/notify              # Bark / Server酱 / Telegram / Webhook 渠道（5 tests）
-apps/extension               # MV3 浏览器扩展（主数据面，小白友好）
-apps/agent                   # 本地 Node Agent（极客数据面，住宅 IP 守护）
-apps/control-plane           # Fastify + node:sqlite 控制面板（零凭证，18 tests）
+apps/extension               # MV3 浏览器扩展（主数据面，小白友好；3 tests）
+apps/agent                   # 本地 Node Agent（极客数据面，住宅 IP 守护；7 tests）
+apps/control-plane           # Fastify + node:sqlite 控制面板（零凭证，22 tests）
 apps/web                     # Next.js 落地页/文档/Demo（部署 Vercel）
 ```
 

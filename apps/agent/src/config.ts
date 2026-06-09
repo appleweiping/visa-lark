@@ -44,9 +44,21 @@ export function loadConfig(path: string): AgentConfig {
   if (!raw.session?.cookie || !raw.session.embassyCode || !raw.session.scheduleId) {
     throw new Error("Config.session must include cookie, embassyCode, scheduleId.");
   }
+  const monitors = (raw.monitors ?? []).map((m) => Monitor.parse(m)).map((m) => {
+    // HIGH-2: the agent can't service a one-tap confirm link (no local UI; the
+    // control plane holds no session). Downgrade `confirm` → `notify` so users
+    // never get a dead button. `auto` (unattended) still works on the agent.
+    if (m.mode === "confirm") {
+      console.warn(
+        `[config] Monitor "${m.label || m.id}": mode "confirm" is not supported by the local agent (it's extension-only). Downgrading to "notify". Use the browser extension for one-tap confirm, or "auto" for unattended booking.`,
+      );
+      return { ...m, mode: "notify" as const };
+    }
+    return m;
+  });
   return {
     session: raw.session,
-    monitors: (raw.monitors ?? []).map((m) => Monitor.parse(m)),
+    monitors,
     channels: raw.channels ?? [],
     currentAppointment: raw.currentAppointment ?? {},
     autoBook: { ...DEFAULT_AUTOBOOK_CONFIG, ...(raw.autoBook ?? {}) },

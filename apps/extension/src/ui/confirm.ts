@@ -17,6 +17,7 @@ const params = new URLSearchParams(location.search);
 const monitorId = params.get("m") ?? "";
 const facilityId = params.get("f") ?? "";
 const date = params.get("d") ?? "";
+const expedite = params.get("x") === "1";
 
 let selectedTime: string | null = null;
 
@@ -25,7 +26,11 @@ const timesEl = document.getElementById("times")!;
 const actions = document.getElementById("actions")!;
 const resultEl = document.getElementById("result")!;
 
-summary.innerHTML = `领区 facility <strong>#${facilityId}</strong> · 日期 <strong>${date}</strong>`;
+function esc(s: string): string {
+  return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+}
+
+summary.innerHTML = `领区 facility <strong>#${esc(facilityId)}</strong> · 日期 <strong>${esc(date)}</strong>`;
 
 async function loadTimes() {
   if (!facilityId || !date) {
@@ -33,7 +38,7 @@ async function loadTimes() {
     return;
   }
   const resp = await sendMessage<{ ok: boolean; times?: { outcome: string; times: string[] }; error?: string }>(
-    { type: "getTimes", monitorId, facilityId, date },
+    { type: "getTimes", monitorId, facilityId, date, expedite },
   );
   if (!resp.ok) {
     timesEl.innerHTML = `<span class="muted">无法获取时段：${resp.error ?? "未知错误"}。请确认已在浏览器登录并同步会话。</span>`;

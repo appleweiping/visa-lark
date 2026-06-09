@@ -223,6 +223,23 @@ describe("control-plane API", () => {
       }
     });
 
+    it("blocks SSRF: IPv4-mapped IPv6 to metadata endpoint (MEDIUM-4)", async () => {
+      for (const url of [
+        "http://[::ffff:169.254.169.254]/latest/meta-data/",
+        "http://[::ffff:a9fe:a9fe]/",
+        "http://[::1]/",
+      ]) {
+        const res = await app.inject({
+          method: "POST",
+          url: "/api/notify",
+          headers: auth(),
+          payload: { channels: [{ type: "webhook", url }], message: { title: "x", body: "y" } },
+        });
+        expect(res.statusCode).toBe(400);
+      }
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
     it("allows a public webhook host", async () => {
       const res = await app.inject({
         method: "POST",

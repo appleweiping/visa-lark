@@ -215,6 +215,14 @@ function isSafePublicUrl(raw: string): boolean {
   const host = u.hostname.toLowerCase();
   if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local")) return false;
   if (host === "169.254.169.254" || host === "metadata.google.internal") return false;
+  // IPv4-mapped / -embedded IPv6 (e.g. ::ffff:169.254.169.254, ::ffff:a9fe:a9fe)
+  // would otherwise slip past the IPv4 range checks below and still connect to
+  // the metadata endpoint (MEDIUM-4). Reject any mapped/compat form outright.
+  if (host.includes("::ffff:") || host.includes("::")) {
+    // ::1, ::ffff:..., and other compressed IPv6 forms — only allow if it's a
+    // clearly-global IPv6 (starts with 2 or 3); everything else is refused.
+    if (!/^[23]/.test(host)) return false;
+  }
   // IPv4 literal private/loopback/link-local ranges.
   const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
   if (m) {
