@@ -8,7 +8,7 @@
 
 *Open-source, account-safe US visa appointment monitor. Zero stored credentials. Zero evasion. No proxy arms race.*
 
-[![tests](https://img.shields.io/badge/tests-89%20passing-2fae6a)]() [![license](https://img.shields.io/badge/license-Apache--2.0-6b8cff)](./LICENSE) [![made with](https://img.shields.io/badge/TypeScript-strict-3178c6)]()
+[![tests](https://img.shields.io/badge/tests-101%20passing-2fae6a)]() [![license](https://img.shields.io/badge/license-Apache--2.0-6b8cff)](./LICENSE) [![made with](https://img.shields.io/badge/TypeScript-strict-3178c6)]()
 
 [功能](#-功能-features) · [它如何保护你的账号](#-它如何保护你的账号-the-safety-model) · [安装](#-安装-install) · [对比 qmq](#-诚实对比-honest-comparison) · [免责声明](#%EF%B8%8F-免责声明-disclaimer)
 
@@ -133,7 +133,7 @@ node apps/agent/dist/index.js apps/agent/visalark.config.json
 packages/shared              # 适配器无关的核心：类型 + 引擎 + 安全 + 联锁 + 通知接口（36 tests）
 packages/adapter-usvisa-info # 唯一接触 usvisa-info 的代码：端点/解析/改期/失败即停（16 tests）
 packages/notify              # Bark / Server酱 / Telegram / Webhook 渠道（5 tests）
-apps/extension               # MV3 浏览器扩展（主数据面，小白友好；3 tests）
+apps/extension               # MV3 浏览器扩展（主数据面，小白友好；15 tests）
 apps/agent                   # 本地 Node Agent（极客数据面，住宅 IP 守护；7 tests）
 apps/control-plane           # Fastify + node:sqlite 控制面板（零凭证，22 tests）
 apps/web                     # Next.js 落地页/文档/Demo（部署 Vercel）

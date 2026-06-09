@@ -17,6 +17,15 @@ import { buildChannels } from "@visa-lark/notify";
 import { BrowserTransport } from "../lib/transport.js";
 import { BrowserNotificationChannel } from "../lib/browser-notify.js";
 import {
+  DAY_MS,
+  globalCap,
+  usedToday,
+  appendGlobalPolls,
+  checkConfirmGuard as guardConfirm,
+  bookingKey,
+  isDuplicateBooking,
+} from "../lib/guards.js";
+import {
   loadState,
   saveState,
   appendLog,
@@ -61,6 +70,12 @@ function channelsFor(state: ExtState) {
  * from polling the same monitor concurrently (HIGH-1: avoids burst + double-book). */
 const inFlight = new Set<string>();
 
+/** Recently-submitted booking targets, for the idempotency lock (H3). A second
+ * confirmBook for the same target within the window is refused (key/window logic
+ * in lib/guards.ts), so a double-clicked notification / two confirm tabs can't
+ * fire two destructive reschedule POSTs. */
+const recentBookings = new Map<string, number>();
+
 /** Run one monitor and schedule the next alarm based on the result. */
 async function tick(monitorId: string): Promise<void> {
   if (inFlight.has(monitorId)) return; // a tick for this monitor is already running
@@ -72,7 +87,6 @@ async function tick(monitorId: string): Promise<void> {
   }
 }
 
-const DAY_MS = 24 * 60 * 60_000;
 
 async function tickInner(monitorId: string): Promise<void> {
   const state = await loadState();
@@ -98,8 +112,6 @@ async function tickInner(monitorId: string): Promise<void> {
   // clobbering with values derived from a possibly-stale base (HIGH-1).
   let bookingDelta = 0;
   const newBookingTimes: number[] = [];
-  const baseRequests = backoff.recentPolls.length;
-  const globalCfg = POLL_PROFILES[monitor.pollProfile] ?? POLL_PROFILES[DEFAULT_PROFILE]!;
 
   let result: RunResult;
   try {
@@ -116,9 +128,8 @@ async function tickInner(monitorId: string): Promise<void> {
         bookingsToday: bk.bookingTimes.filter((t) => t > dayAgo).length,
       }),
       getGlobalRequestBudget: () => ({
-        used: state.globalPolls.filter((t) => t > dayAgo).length,
-        // account-wide ceiling = 1.5× a single profile's cap (generous but bounded)
-        cap: Math.round(globalCfg.dailyCap * 1.5),
+        used: usedToday(state.globalPolls, Date.now()),
+        cap: globalCap(monitor.pollProfile),
       }),
       onObservation: (dates, at) => {
         void relayObservation(state.controlPlaneUrl, state.controlPlaneToken, monitorId, dates, at);
@@ -157,8 +168,9 @@ async function tickInner(monitorId: string): Promise<void> {
     return;
   }
 
-  // How many real requests did this cycle issue (days + any times/reschedule)?
-  const requestsThisCycle = Math.max(0, result.backoff.recentPolls.length - baseRequests);
+  // The engine reports the EXACT number of requests it issued (H1) — use it
+  // directly rather than diffing a self-pruning array.
+  const requestsThisCycle = result.requestsIssued;
   const stopped = result.next.kind === "stopped";
 
   // Apply ALL state changes atomically against FRESH state using deltas (HIGH-1).
@@ -170,8 +182,7 @@ async function tickInner(monitorId: string): Promise<void> {
     fresh.bookkeeping[monitorId] = fbk;
     // global request budget: append this cycle's request stamps, prune >24h
     const now = Date.now();
-    const stamp = Array.from({ length: requestsThisCycle }, () => now);
-    fresh.globalPolls = [...fresh.globalPolls.filter((t) => t > now - DAY_MS), ...stamp];
+    fresh.globalPolls = appendGlobalPolls(fresh.globalPolls, requestsThisCycle, now);
     fresh.logs.push({ at: now, monitorId, outcome: result.outcome, note: result.note });
     if (stopped) {
       fresh.monitors = fresh.monitors.map((m) =>
@@ -213,26 +224,12 @@ async function relayObservation(
 }
 
 /**
- * Guard for the human-driven confirm path (MEDIUM-2): refuse to touch usvisa-info
- * when the monitor is in a hard cooldown (challenge/ban) or the account-wide
- * daily request budget is exhausted — even though a human initiated it.
+ * Guard for the human-driven confirm path (MEDIUM-2). Thin wrapper over the
+ * pure, tested helper in lib/guards.ts.
  */
 function checkConfirmGuard(state: ExtState, monitorId: string): { ok: true } | { ok: false; reason: string } {
-  const now = Date.now();
-  const bo = state.backoff[monitorId] ?? initBackoff();
-  const profile =
-    POLL_PROFILES[state.monitors.find((m) => m.id === monitorId)?.pollProfile ?? DEFAULT_PROFILE] ??
-    POLL_PROFILES[DEFAULT_PROFILE]!;
-  const action = decideNextAction(bo, profile, now);
-  if (action.kind === "stop") {
-    return { ok: false, reason: "该监控处于安全冷却中（曾遇验证拦截/限制），请稍后再试或重新同步会话。" };
-  }
-  const dayAgo = now - DAY_MS;
-  const used = state.globalPolls.filter((t) => t > dayAgo).length;
-  if (used >= Math.round(profile.dailyCap * 1.5)) {
-    return { ok: false, reason: "今日请求已达账号安全上限，请明日再试。" };
-  }
-  return { ok: true };
+  const profile = state.monitors.find((m) => m.id === monitorId)?.pollProfile ?? DEFAULT_PROFILE;
+  return guardConfirm(state.backoff[monitorId] as never, profile, state.globalPolls, Date.now());
 }
 
 /** Record one confirm-path request into the monitor backoff + global budget (MEDIUM-2). */
@@ -241,7 +238,7 @@ async function recordConfirmRequest(monitorId: string, outcome: PollOutcome): Pr
   await mutate(async (s) => {
     const bo = s.backoff[monitorId] ?? initBackoff();
     s.backoff[monitorId] = recordOutcome(bo, outcome, now, 1);
-    s.globalPolls = [...s.globalPolls.filter((t) => t > now - DAY_MS), now];
+    s.globalPolls = appendGlobalPolls(s.globalPolls, 1, now);
     return s;
   });
 }
@@ -376,18 +373,35 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           sendResponse({ ok: false, error: guard.reason });
           break;
         }
-        const result = await adapter.reschedule(
-          {
-            facilityId: msg.facilityId,
-            date: msg.date,
-            time: msg.time,
-            monitorId: msg.monitorId,
-          },
-          session,
-        );
+        // Idempotency lock (H3): refuse a duplicate booking for the same target
+        // within the window, and block a concurrent auto-tick for this monitor.
+        const key = bookingKey(msg.monitorId, msg.facilityId, msg.date, msg.time);
+        if (isDuplicateBooking(recentBookings, key, Date.now()) || inFlight.has(msg.monitorId)) {
+          sendResponse({
+            ok: false,
+            error: "该预约请求正在处理或刚刚已提交，已忽略重复点击（防止重复改期）。",
+          });
+          break;
+        }
+        recentBookings.set(key, Date.now());
+        inFlight.add(msg.monitorId);
+        let result: { status: string; message?: string };
+        try {
+          result = await adapter.reschedule(
+            {
+              facilityId: msg.facilityId,
+              date: msg.date,
+              time: msg.time,
+              monitorId: msg.monitorId,
+            },
+            session,
+          );
+        } finally {
+          inFlight.delete(msg.monitorId);
+        }
         await recordConfirmRequest(
           msg.monitorId,
-          result.status === "recaptcha_required" ? "challenge" : "ok",
+          result.status === "recaptcha_required" ? "challenge" : result.status === "failed" ? "network_error" : "ok",
         );
         // On confirmed booking, update the user's current appointment locally.
         if (result.status === "confirmed") {

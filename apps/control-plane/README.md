@@ -62,7 +62,7 @@ Copy `.env.example` → `.env`:
 ### One-line install (recommended)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/your-org/visa-lark/main/apps/control-plane/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/appleweiping/visa-lark/main/apps/control-plane/install.sh | bash
 ```
 
 It installs Docker if missing, prompts for / generates a `DASHBOARD_TOKEN`, runs

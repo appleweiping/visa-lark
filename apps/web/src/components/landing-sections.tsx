@@ -5,7 +5,7 @@ import { useLocale } from "@/lib/locale-context";
 import { Section, SectionHeading } from "@/components/section";
 import { Icon } from "@/components/icon";
 
-const GITHUB_URL = "https://github.com/your-org/visa-lark";
+const GITHUB_URL = "https://github.com/appleweiping/visa-lark";
 
 /* ===================== What it does ===================== */
 export function WhatSection() {
@@ -172,7 +172,7 @@ export function InstallSection() {
         <div className="prose-doc">
           <pre>
             <code>{`# Optional self-host control plane (Oracle Cloud Always Free)
-curl -fsSL https://raw.githubusercontent.com/your-org/visa-lark/main/apps/control-plane/install.sh | bash`}</code>
+curl -fsSL https://raw.githubusercontent.com/appleweiping/visa-lark/main/apps/control-plane/install.sh | bash`}</code>
           </pre>
         </div>
       </div>

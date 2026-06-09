@@ -86,7 +86,7 @@ const DOCS: Record<Locale, DocSection[]> = {
       blocks: [
         { type: "p", text: "控制面是可选的便利组件，持有零签证凭据、永不触碰 usvisa-info。它提供跨设备的可约历史、日历热力图与“最佳查询时段”，以及一个通知中转（让渠道密钥留在你的服务器而非页面里）。推荐部署在 Oracle Cloud 永久免费 VM。" },
         { type: "h3", text: "一行安装" },
-        { type: "code", text: "curl -fsSL https://raw.githubusercontent.com/your-org/visa-lark/main/apps/control-plane/install.sh | bash" },
+        { type: "code", text: "curl -fsSL https://raw.githubusercontent.com/appleweiping/visa-lark/main/apps/control-plane/install.sh | bash" },
         { type: "p", text: "脚本会在缺失时安装 Docker，提示你输入（或自动生成）DASHBOARD_TOKEN，运行 docker compose，等待健康检查并打印 URL。" },
         { type: "h3", text: "推荐入口：Cloudflare Tunnel" },
         { type: "p", text: "不要直接对公网开放 8787 端口。使用 Cloudflare Tunnel——无需开放入站端口、免费 TLS、隐藏 VM 真实 IP。docker-compose.yml 中已附带 cloudflared 服务模板。" },
@@ -177,7 +177,7 @@ const DOCS: Record<Locale, DocSection[]> = {
       blocks: [
         { type: "p", text: "The control plane is an optional convenience that holds ZERO visa credentials and never touches usvisa-info. It gives you cross-device availability history, a calendar heatmap with 'best time to check', and a notification relay (so channel secrets live on your server, not in a page). It's a great fit for an Oracle Cloud Always Free VM." },
         { type: "h3", text: "One-line install" },
-        { type: "code", text: "curl -fsSL https://raw.githubusercontent.com/your-org/visa-lark/main/apps/control-plane/install.sh | bash" },
+        { type: "code", text: "curl -fsSL https://raw.githubusercontent.com/appleweiping/visa-lark/main/apps/control-plane/install.sh | bash" },
         { type: "p", text: "The script installs Docker if missing, prompts for (or generates) a DASHBOARD_TOKEN, runs docker compose, waits for health, and prints the URL." },
         { type: "h3", text: "Recommended ingress: Cloudflare Tunnel" },
         { type: "p", text: "Don't expose port 8787 to the internet. Use a Cloudflare Tunnel — no inbound ports, free TLS, hides the VM IP. A cloudflared service template is included in docker-compose.yml." },

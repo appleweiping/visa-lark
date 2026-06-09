@@ -23,7 +23,11 @@ import type {
   Session,
 } from "./types.js";
 
-/** Map a booking result status to a poll outcome for the fail-safe machine (HIGH-3). */
+/** Map a booking result status to a poll outcome for the fail-safe machine (HIGH-3).
+ * NOTE: only called AFTER an actual reschedule POST, so the status is always one
+ * of confirmed/slot_gone/recaptcha_required/failed. dry_run/interlock_blocked are
+ * produced in the no-POST branch and must NOT be routed here (they'd wrongly reset
+ * the error streak with no request having been made). */
 function bookingResultToOutcome(status: BookingResult["status"]): PollOutcome {
   switch (status) {
     case "recaptcha_required":
@@ -83,6 +87,13 @@ export interface RunResult {
   /** Human-readable note for logs. */
   note: string;
   bookingResult?: BookingResult;
+  /**
+   * The exact number of HTTP requests this cycle issued to usvisa-info (days +
+   * any times + any reschedule). The host uses THIS for the global request
+   * budget — never reverse-engineer it from backoff.recentPolls.length, which
+   * self-prunes >24h stamps and would miscount (H1).
+   */
+  requestsIssued: number;
 }
 
 function slotMessage(
@@ -134,6 +145,7 @@ export async function runMonitorOnce(
       next: { kind: "stopped", reason: gate.reason },
       backoff,
       note: "Fail-safe stop.",
+      requestsIssued: 0,
     };
   }
   if (gate.kind === "wait") {
@@ -142,6 +154,7 @@ export async function runMonitorOnce(
       next: { kind: "schedule", delayMs: Math.max(1000, gate.untilMs - now) },
       backoff,
       note: `Waiting (${gate.reason}).`,
+      requestsIssued: 0,
     };
   }
 
@@ -154,12 +167,15 @@ export async function runMonitorOnce(
       next: { kind: "schedule", delayMs: Math.max(60_000, jitteredInterval(profile, rng)) },
       backoff,
       note: `Waiting (global daily request budget ${budget.used}/${budget.cap} reached).`,
+      requestsIssued: 0,
     };
   }
 
   // 2) Poll available days.
   const day = await deps.adapter.getAvailableDays(monitor, session);
   const newBackoff = recordOutcome(backoff, day.outcome, now, day.requestCount);
+  // Track the EXACT request count this cycle issues for the global budget (H1).
+  let requestsIssued = day.requestCount;
 
   if (day.outcome !== "ok") {
     // Surface expiry/challenge to the user; reschedule per backoff.
@@ -178,6 +194,7 @@ export async function runMonitorOnce(
         next: { kind: "stopped", reason: action.reason },
         backoff: newBackoff,
         note: `Stopped after ${day.outcome}.`,
+        requestsIssued,
       };
     }
     const delayMs =
@@ -189,6 +206,7 @@ export async function runMonitorOnce(
       next: { kind: "schedule", delayMs },
       backoff: newBackoff,
       note: `Poll outcome: ${day.outcome}.`,
+      requestsIssued,
     };
   }
 
@@ -203,6 +221,7 @@ export async function runMonitorOnce(
       next: { kind: "schedule", delayMs: jitteredInterval(profile, rng) },
       backoff: newBackoff,
       note: `${day.dates.length} date(s) seen, none match filters.`,
+      requestsIssued,
     };
   }
 
@@ -227,6 +246,7 @@ export async function runMonitorOnce(
     // Account for the extra request, and FAIL-SAFE on any non-ok times outcome
     // (a challenge/ban/expiry on the times endpoint must STOP, not be swallowed — H1).
     workingBackoff = recordOutcome(workingBackoff, times.outcome, now, 1);
+    requestsIssued += 1;
     if (times.outcome !== "ok") {
       if (times.outcome === "session_expired") {
         await dispatch(deps.channels, {
@@ -243,6 +263,7 @@ export async function runMonitorOnce(
           next: { kind: "stopped", reason: action.reason },
           backoff: workingBackoff,
           note: `Stopped after times poll: ${times.outcome}.`,
+          requestsIssued,
         };
       }
       const delayMs =
@@ -252,6 +273,7 @@ export async function runMonitorOnce(
         next: { kind: "schedule", delayMs },
         backoff: workingBackoff,
         note: `Times poll outcome: ${times.outcome}.`,
+        requestsIssued,
       };
     }
     // Pick the earliest time that passes the time-of-day filter (M2).
@@ -276,6 +298,7 @@ export async function runMonitorOnce(
         // booking must STOP, never silently let the next cycle re-POST through it.
         const bookingOutcome = bookingResultToOutcome(bookingResult.status);
         workingBackoff = recordOutcome(workingBackoff, bookingOutcome, now, 1);
+        requestsIssued += 1;
         deps.onBooked?.(bookingResult);
         await dispatch(deps.channels, {
           title:
@@ -296,6 +319,7 @@ export async function runMonitorOnce(
               backoff: workingBackoff,
               note: "Stopped: reschedule hit a security challenge.",
               bookingResult,
+              requestsIssued,
             };
           }
         }
@@ -329,5 +353,6 @@ export async function runMonitorOnce(
     backoff: workingBackoff,
     note: `Slot found: ${earliest.date} @ ${earliest.facilityId} (mode=${monitor.mode}).`,
     bookingResult,
+    requestsIssued,
   };
 }

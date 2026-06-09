@@ -6,7 +6,7 @@ import { useLocale } from "@/lib/locale-context";
 import { LocaleToggle } from "./locale-toggle";
 import { ThemeToggle } from "./theme-toggle";
 
-const GITHUB_URL = "https://github.com/your-org/visa-lark";
+const GITHUB_URL = "https://github.com/appleweiping/visa-lark";
 
 export function SiteHeader() {
   const { t } = useLocale();

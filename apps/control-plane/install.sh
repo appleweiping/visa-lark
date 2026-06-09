@@ -10,7 +10,7 @@
 # Recommended ingress is Cloudflare Tunnel (no inbound ports). See docker-compose.yml.
 set -euo pipefail
 
-REPO_URL="${VISALARK_REPO:-https://github.com/your-org/visa-lark.git}"
+REPO_URL="${VISALARK_REPO:-https://github.com/appleweiping/visa-lark.git}"
 INSTALL_DIR="${VISALARK_DIR:-$HOME/visa-lark}"
 APP_DIR="$INSTALL_DIR/apps/control-plane"
 

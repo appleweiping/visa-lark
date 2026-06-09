@@ -210,7 +210,7 @@ const zh: Dict = {
       },
       {
         title: "一键确认改签",
-        body: "发现名额 → 推送带一键按钮 → 用热会话在 1 秒内完成改签。人始终在环内。",
+        body: "发现名额 → 推送带一键按钮 → 尝试用热会话快速改签（实验性：改签流程尚未在真实账号完整验证，结果不确定时会要求你手动核对）。人始终在环内。",
         icon: "tap",
       },
       {
@@ -422,7 +422,7 @@ const en: Dict = {
       },
       {
         title: "One-tap confirm",
-        body: "Slot found → push with a one-tap button → reschedule in under a second on a warm session. Human always in the loop.",
+        body: "Slot found → push with a one-tap button → attempt a fast reschedule on a warm session (experimental: the reschedule flow is not yet fully verified against a live account; ambiguous results ask you to verify manually). Human always in the loop.",
         icon: "tap",
       },
       {

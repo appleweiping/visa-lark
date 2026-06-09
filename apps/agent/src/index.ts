@@ -82,6 +82,12 @@ async function main() {
         bookingsMade: bk.bookingsMade,
         bookingsToday: bk.bookingTimes.filter((t) => t > dayAgo()).length,
       }),
+      // Account-wide daily request budget across ALL monitors (H2 — was
+      // extension-only). The 24x7 agent most needs this.
+      getGlobalRequestBudget: () => ({
+        used: state.globalPolls.filter((t) => t > dayAgo()).length,
+        cap: Math.round(profile.dailyCap * 1.5),
+      }),
       onObservation: (dates, at) => void relay(cfg, monitor.id, dates, at),
       onBooked: (r) => {
         if (r.status === "confirmed") {
@@ -93,6 +99,12 @@ async function main() {
 
     state.backoff[monitor.id] = result.backoff;
     state.bookkeeping[monitor.id] = bk;
+    // Append this cycle's real request count to the global budget, prune >24h.
+    const nowTs = Date.now();
+    state.globalPolls = [
+      ...state.globalPolls.filter((t) => t > nowTs - 24 * 60 * 60_000),
+      ...Array.from({ length: result.requestsIssued }, () => nowTs),
+    ];
     saveState(cfg.stateFile!, state);
     log(`[${monitor.label || monitor.id}] ${result.outcome} — ${result.note}`);
 

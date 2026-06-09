@@ -11,7 +11,7 @@ import {
   DisclaimerSection,
 } from "@/components/landing-sections";
 
-const GITHUB_URL = "https://github.com/your-org/visa-lark";
+const GITHUB_URL = "https://github.com/appleweiping/visa-lark";
 
 export default function LandingPage() {
   const { t } = useLocale();

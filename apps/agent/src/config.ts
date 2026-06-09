@@ -83,17 +83,20 @@ export function toSession(cfg: AgentConfig): Session {
 export interface AgentState {
   backoff: Record<string, unknown>;
   bookkeeping: Record<string, { bookingsMade: number; bookingTimes: number[] }>;
+  /** Global cross-monitor request timestamps for the account-wide daily cap (H2). */
+  globalPolls: number[];
 }
 
 export function loadState(path: string): AgentState {
   if (existsSync(path)) {
     try {
-      return JSON.parse(readFileSync(path, "utf8")) as AgentState;
+      const s = JSON.parse(readFileSync(path, "utf8")) as Partial<AgentState>;
+      return { backoff: s.backoff ?? {}, bookkeeping: s.bookkeeping ?? {}, globalPolls: s.globalPolls ?? [] };
     } catch {
       /* corrupt → reset */
     }
   }
-  return { backoff: {}, bookkeeping: {} };
+  return { backoff: {}, bookkeeping: {}, globalPolls: [] };
 }
 
 export function saveState(path: string, state: AgentState): void {

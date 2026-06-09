@@ -17,7 +17,6 @@ export default defineManifest({
   version: "0.1.0",
   description:
     "Open-source, account-safe US visa appointment monitor. Rides your own browser session — zero credentials stored, zero evasion. Improves your odds; no proxy arms race.",
-  default_locale: "en",
   icons: {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
