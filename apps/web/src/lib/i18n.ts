@@ -1,14 +1,29 @@
 /**
- * Bilingual copy (zh primary, en secondary). Honest positioning per DESIGN.md
- * §10 — NO "guaranteed grab" / "秒级抢到". We promise odds improvement only.
+ * Multilingual copy (zh primary, plus en/ja/ko). Honest positioning per
+ * DESIGN.md §10 — NO "guaranteed grab" / "秒级抢到". We promise odds
+ * improvement only.
  *
- * Kept as a typed dictionary so both languages stay structurally in sync and the
- * compiler catches a missing translation.
+ * Kept as a typed dictionary so every language stays structurally in sync and
+ * the compiler catches a missing translation.
  */
 
-export type Locale = "zh" | "en";
+export type Locale = "zh" | "en" | "ja" | "ko";
 
-export const LOCALES: Locale[] = ["zh", "en"];
+export const LOCALES: Locale[] = ["zh", "en", "ja", "ko"];
+
+export const LOCALE_LABELS: Record<Locale, string> = {
+  zh: "中文",
+  en: "EN",
+  ja: "日本語",
+  ko: "한국어",
+};
+
+export const LOCALE_HTML_LANG: Record<Locale, string> = {
+  zh: "zh-CN",
+  en: "en",
+  ja: "ja",
+  ko: "ko",
+};
 
 export interface NavCopy {
   features: string;
@@ -550,4 +565,428 @@ const en: Dict = {
   },
 };
 
-export const DICT: Record<Locale, Dict> = { zh, en };
+const ja: Dict = {
+  nav: {
+    features: "機能",
+    safety: "安全モデル",
+    docs: "ドキュメント",
+    demo: "ライブデモ",
+    github: "GitHub",
+  },
+  hero: {
+    badge: "オープンソース · アカウント安全第一 · 資格情報ゼロ",
+    title: "VisaLark 签证云雀",
+    subtitle: "オープンソースの米国ビザ予約モニター",
+    tagline:
+      "見逃していたはずの枠を捕捉し、面接予約のチャンスを高めます —— 「秒速で確保」を約束するものではありません。",
+    honestNote:
+      "私たちは過酷な住宅用プロキシ IP の軍拡競争には参加しません（アカウント停止やリポジトリ削除を招きます）。安全性・透明性・複数領事館のカバー・枠リリースのパターン分析で勝負します。",
+    ctaInstall: "拡張をインストール",
+    ctaDemo: "ライブデモを見る",
+    ctaDocs: "ドキュメントを読む",
+    trustRow: ["住宅用 IP のデータプレーン", "資格情報の保存ゼロ", "回避 / 反検出コードゼロ", "Apache-2.0 オープンソース"],
+  },
+  what: {
+    eyebrow: "何をするか",
+    title: "モニター優先の予約支援ツール",
+    body:
+      "VisaLark は、あなた自身のブラウザまたはローカル端末で、すでにログイン済みのビザサイトのセッションを再利用し、複数領事館の空き枠を監視します。受け入れ可能な枠が出た瞬間、マルチチャネルで通知します —— ワンタップでの予約変更確認も選べます。",
+    points: [
+      {
+        title: "確保ではなく監視",
+        body: "デフォルトは通知のみ。予約変更は破壊的操作なので、外科手術のように扱い、既存の予約を盲目的に手放すことは決してありません。",
+      },
+      {
+        title: "本物のセッションを再利用",
+        body: "コードはあなたがログインした場所で動作し、ブラウザ自身の指紋と Cookie を使います。偽装せず、パスワードも保存しません。",
+      },
+      {
+        title: "データはあなたのもの",
+        body: "任意のセルフホスト型コントロールプレーンが履歴とヒートマップを端末間で同期します —— ビザ資格情報は一切保持しません。",
+      },
+    ],
+  },
+  safety: {
+    eyebrow: "2 層の安全モデル",
+    title: "なぜこの設計があなたのアカウントを守るのか",
+    intro:
+      "米国ビザシステム（CGI Federal / usvisa-info）は、Cloudflare と reCAPTCHA に加えユーザー単位の行動 ML を実行します。致命的なシグナルはポーリング頻度ではなく、ASN / 不可能な移動の不一致です：住宅用ネットワークからログインしたのに、同じセッションがクラウドのデータセンター IP から空き枠 API を叩くと、教科書的なアカウント乗っ取り / 自動化の兆候となり、あなたの本物のビザアカウントを速やかに停止させます。",
+    pillars: [
+      {
+        title: "住宅用 IP のみのデータプレーン",
+        body: "usvisa-info に触れるすべてのコードは、あなた自身の住宅用回線で動作します。",
+        why: "ログイン地と一致しないクラウド ASN = 停止リスクだからです。クラウド IP からのポーリングをアーキテクチャ上不可能にしています。",
+      },
+      {
+        title: "資格情報ゼロ",
+        body: "デフォルトは Cookie / セッション再利用のみ —— ビザのパスワードは保存しません。コントロールプレーンは資格情報に一切触れません。",
+        why: "資格情報のハニーポットがなければ、大量乗っ取りやコンプライアンス上の責任リスクもありません —— それがあなたと私たちを守ります。",
+      },
+      {
+        title: "回避コードゼロ",
+        body: "プロキシのローテーションなし、指紋偽装なし、CAPTCHA 解読なし、TLS なりすましなし。",
+        why: "これはアカウントの盾であり法的な盾でもあります。CAPTCHA / 401 / 403 / 1015 に遭遇したら停止して通知します —— 決して強行しません。",
+      },
+    ],
+    planes: {
+      dataTitle: "データプレーン（あなたの住宅用ネットワーク上）",
+      dataBody:
+        "ブラウザ拡張（MV3）またはローカル Agent。usvisa-info とセッション Cookie に触れる唯一の部分です。本物のブラウザセッションを再利用し、保守的でジッター付きのポーリングを行います。",
+      controlTitle: "コントロールプレーン（任意 · 資格情報ゼロ）",
+      controlBody:
+        "apps/web（Vercel）+ apps/control-plane（Oracle 無料 VM）。ランディング、ドキュメント、デモ、履歴とヒートマップ、通知中継のみ。ビザサイトをポーリングすることはありません。",
+    },
+  },
+  features: {
+    eyebrow: "機能",
+    title: "必要なものすべて、負うべきでないリスクはゼロ",
+    subtitle: "MVP と v1 の差別化機能はすべて「安全に命中率を高める」を軸にしています。",
+    items: [
+      {
+        title: "複数領事館の最早枠",
+        body: "「受け入れ可能な都市の中で最も早い枠」—— 複数の領事館を同時に監視し、最早日を自動集約します。",
+        icon: "globe",
+      },
+      {
+        title: "ワンタップ確認",
+        body: "枠発見 → ワンタップボタン付き通知 → ウォームセッションで高速予約変更を試行（実験的：予約変更フローは実アカウントで未検証。結果が不明確な場合は手動確認を求めます）。常に人間が関与します。",
+        icon: "tap",
+      },
+      {
+        title: "マルチチャネル通知",
+        body: "Bark（iOS）、Server酱（WeChat）、Telegram、Webhook。中国到達を優先し、高優先度イベントは全チャネルへ冗長送信します。",
+        icon: "bell",
+      },
+      {
+        title: "カレンダーヒートマップ",
+        body: "あなた自身のポーリング履歴を 7×24 のヒートマップにし、枠がいつ放出されやすいか一目で把握できます。",
+        icon: "calendar",
+      },
+      {
+        title: "最適な確認時間帯",
+        body: "リリースパターン学習が、どの時間帯に最も枠が出るかを算出 —— 命中率を高めつつ、ポーリングを減らせます。",
+        icon: "spark",
+      },
+      {
+        title: "緊急枠 & フィルタ",
+        body: "expedite / 緊急カレンダーを監視し、日付範囲・曜日・時間帯の細かいフィルタに対応します。",
+        icon: "filter",
+      },
+    ],
+  },
+  compare: {
+    eyebrow: "正直な比較",
+    title: "VisaLark vs 有料「確保代行」サービス",
+    subtitle: "私たちは 30 秒の軍拡競争に勝てるふりはしません。正直にトレードオフを示します。",
+    columns: { us: "VisaLark", them: "有料プロキシ確保代行（qmq 系など）" },
+    rows: [
+      { label: "価格", us: "無料 · オープンソース", them: "有料 VIP / サブスク" },
+      { label: "アカウント安全性", us: "住宅用 IP + 回避ゼロ、停止リスク最小", them: "クラウドプロキシのローテーション、停止リスク高" },
+      { label: "資格情報", us: "ゼロ —— パスワードは端末から出ない", them: "資格情報をホストすることが多い（ハニーポットリスク）" },
+      { label: "最人気枠の秒単位「確保」", us: "約束しない（プロキシ戦には参加しない）", them: "住宅用プロキシ IP 群で勝負" },
+      { label: "複数領事館", us: "「最早空き」集約をネイティブ対応", them: "サービスによる" },
+      { label: "透明性", us: "完全オープンソース、監査可能", them: "クローズドのブラックボックス" },
+    ],
+    footnote:
+      "もし目標が最も人気の数領事館での瞬間的な枠なら、有料プロキシ群の方が確かに速いです —— ただしアカウント停止という実際のリスクを伴います。VisaLark は、安全に、長期的に枠を捕まえたい人向けです。",
+  },
+  install: {
+    eyebrow: "はじめる",
+    title: "3 ステップで稼働",
+    subtitle: "開始にサーバーは不要。コントロールプレーンは任意のアップグレードです。",
+    steps: [
+      {
+        title: "1 · ブラウザ拡張をインストール",
+        body: "Chrome / Edge に VisaLark 拡張（データプレーン）を追加。ログイン中のタブ内でのみ動作します。",
+      },
+      {
+        title: "2 · 自分でビザサイトにログイン",
+        body: "いつも通り usvisa-info にサインイン。拡張はログイン済みセッションを再利用し、パスワードを保存することはありません。",
+      },
+      {
+        title: "3 · モニターと通知を設定",
+        body: "領事館・ビザ種別・受け入れ可能な日付を選び、Bark / WeChat / Telegram の通知を設定して、あとは任せるだけ。",
+      },
+    ],
+    extensionCta: "ブラウザ拡張をダウンロード",
+    agentCta: "ローカル Agent を実行（上級）",
+    controlPlaneCta: "コントロールプレーンをセルフホスト（任意）",
+  },
+  disclaimer: {
+    title: "法的・リスクに関する免責事項",
+    body: [
+      "本プロジェクトは教育および個人利用のみを目的としています。VisaLark は CGI Federal、米国国務省、いかなる政府機関とも提携・認可・推奨関係にありません。",
+      "本ツールの使用から生じるすべてのリスク（ビザアカウントの停止、予約の喪失、MRV 手数料の損失を含むがこれに限らない）はあなたが負います。本ソフトウェアは「現状のまま」提供され、明示黙示を問わずいかなる保証もありません。",
+      "本リポジトリには検出回避・プロキシローテーション・CAPTCHA 解読のコードは含まれません。対象サイトの利用規約とお住まいの法域の法律を遵守してください。本ページは法的助言ではありません。",
+    ],
+  },
+  footer: {
+    tagline: "オープンソースの米国ビザ予約モニター。アカウント安全第一。",
+    builtWith: "TypeScript · Next.js · Fastify で構築",
+    sections: [
+      {
+        title: "プロダクト",
+        links: [
+          { label: "機能", href: "/#features" },
+          { label: "安全モデル", href: "/#safety" },
+          { label: "ライブデモ", href: "/demo" },
+        ],
+      },
+      {
+        title: "ドキュメント",
+        links: [
+          { label: "クイックスタート", href: "/docs#getting-started" },
+          { label: "安全モデル", href: "/docs#safety-model" },
+          { label: "コントロールプレーンのセルフホスト", href: "/docs#control-plane" },
+          { label: "FAQ", href: "/docs#faq" },
+        ],
+      },
+    ],
+    legal: "CGI Federal や米国国務省とは無関係。教育 / 個人利用、自己責任、保証なし。",
+  },
+  demo: {
+    title: "ライブデモ（モックデータ）",
+    subtitle: "完全オフラインのインタラクティブデモで、実際のプロダクトの操作感を示します。ネットワーク接続なし、ビザサイトへの接触なし。",
+    mockNote: "モックデータ · 実際のネットワークリクエストは一切行いません",
+    boardTitle: "領事館別の空き枠ボード",
+    heatmapTitle: "枠リリースのヒートマップ",
+    heatmapSubtitle: "曜日 × 時間で、過去に見られた枠リリースを表示（濃いほどリリースが多い）",
+    bestTime: "最適な確認時間帯",
+    monitorTitle: "モニター設定",
+    notifyTitle: "通知設定",
+    statusLabels: { plenty: "空きあり", scarce: "残りわずか", none: "空きなし" },
+    lastUpdated: "更新",
+    earliest: "最早",
+    readOnly: "読み取り専用デモ",
+    fields: {
+      cities: "監視する都市",
+      visaType: "ビザ種別",
+      dateRange: "受け入れ可能な日付範囲",
+      dow: "曜日フィルタ",
+      mode: "予約モード",
+      cadence: "ポーリング頻度",
+    },
+    modes: { notify: "通知のみ", confirm: "ワンタップ確認", auto: "自動予約変更" },
+    channels: { bark: "Bark (iOS)", serverchan: "Server酱 (WeChat)", telegram: "Telegram", webhook: "Webhook" },
+    heartbeatNote: "ハートビート有効：枠がなくても定期的に「モニター稼働中」の通知が届きます —— 沈黙 ≠ 枠なし。",
+  },
+  docs: {
+    title: "ドキュメント",
+    subtitle: "インストールから安全モデルまですべて。",
+    tocTitle: "このページの内容",
+  },
+};
+
+const ko: Dict = {
+  nav: {
+    features: "기능",
+    safety: "안전 모델",
+    docs: "문서",
+    demo: "라이브 데모",
+    github: "GitHub",
+  },
+  hero: {
+    badge: "오픈소스 · 계정 안전 최우선 · 자격 증명 0",
+    title: "VisaLark 签证云雀",
+    subtitle: "오픈소스 미국 비자 예약 모니터",
+    tagline:
+      "놓쳤을 슬롯을 잡아내 면접 예약 확률을 높입니다 —— 대신 「초 단위로 확보」를 약속하지는 않습니다.",
+    honestNote:
+      "우리는 가혹한 주거용 프록시 IP 군비 경쟁에 참여하지 않습니다(계정 정지와 저장소 삭제를 초래합니다). 안전성, 투명성, 다중 영사관 커버리지, 슬롯 릴리스 패턴 분석으로 승부합니다.",
+    ctaInstall: "확장 설치",
+    ctaDemo: "라이브 데모 보기",
+    ctaDocs: "문서 읽기",
+    trustRow: ["주거용 IP 데이터 플레인", "자격 증명 저장 0", "우회 / 탐지 회피 코드 0", "Apache-2.0 오픈소스"],
+  },
+  what: {
+    eyebrow: "무엇을 하는가",
+    title: "모니터 우선의 예약 지원 도구",
+    body:
+      "VisaLark는 당신 자신의 브라우저나 로컬 기기에서 이미 로그인된 비자 사이트 세션을 재사용해 여러 영사관의 빈 슬롯을 감시합니다. 수용 가능한 슬롯이 나오는 순간 멀티채널로 알림을 보냅니다 —— 원탭 예약 변경 확인도 선택할 수 있습니다.",
+    points: [
+      {
+        title: "확보가 아니라 모니터링",
+        body: "기본은 알림만. 예약 변경은 파괴적 작업이므로 수술처럼 다루며, 기존 예약을 맹목적으로 포기하지 않습니다.",
+      },
+      {
+        title: "실제 세션 재사용",
+        body: "코드는 당신이 로그인한 곳에서 실행되며, 브라우저 자체의 핑거프린트와 쿠키를 사용합니다. 위조하지 않고 비밀번호도 저장하지 않습니다.",
+      },
+      {
+        title: "데이터는 당신의 것",
+        body: "선택적 셀프 호스팅 컨트롤 플레인이 이력과 히트맵을 기기 간에 동기화합니다 —— 비자 자격 증명은 하나도 보관하지 않습니다.",
+      },
+    ],
+  },
+  safety: {
+    eyebrow: "2계층 안전 모델",
+    title: "왜 이 설계가 당신의 계정을 보호하는가",
+    intro:
+      "미국 비자 시스템(CGI Federal / usvisa-info)은 Cloudflare와 reCAPTCHA에 더해 사용자별 행동 ML을 실행합니다. 치명적인 신호는 폴링 빈도가 아니라 ASN / 불가능한 이동의 불일치입니다: 주거용 네트워크에서 로그인했는데 같은 세션이 클라우드 데이터센터 IP에서 가용 API를 호출하면, 이는 교과서적인 계정 탈취 / 자동화 시그니처이며 당신의 실제 비자 계정을 빠르게 정지시킵니다.",
+    pillars: [
+      {
+        title: "주거용 IP 전용 데이터 플레인",
+        body: "usvisa-info에 닿는 모든 코드는 당신 자신의 주거용 회선에서 실행됩니다.",
+        why: "로그인 위치와 일치하지 않는 클라우드 ASN = 정지 위험이기 때문입니다. 클라우드 IP 폴링을 아키텍처상 불가능하게 만듭니다.",
+      },
+      {
+        title: "자격 증명 0",
+        body: "기본은 쿠키 / 세션 재사용만 —— 비자 비밀번호를 저장하지 않습니다. 컨트롤 플레인은 자격 증명에 전혀 닿지 않습니다.",
+        why: "자격 증명 허니팟이 없으면 대량 탈취나 컴플라이언스 책임 위험도 없습니다 —— 그것이 당신과 우리를 보호합니다.",
+      },
+      {
+        title: "우회 코드 0",
+        body: "프록시 로테이션 없음, 핑거프린트 위조 없음, CAPTCHA 해독 없음, TLS 위장 없음.",
+        why: "이것은 계정 방패이자 법적 방패입니다. CAPTCHA / 401 / 403 / 1015를 만나면 중단하고 알립니다 —— 절대 강행하지 않습니다.",
+      },
+    ],
+    planes: {
+      dataTitle: "데이터 플레인(당신의 주거용 네트워크 상)",
+      dataBody:
+        "브라우저 확장(MV3) 또는 로컬 Agent. usvisa-info와 세션 쿠키에 닿는 유일한 부분입니다. 실제 브라우저 세션을 재사용하며 보수적이고 지터가 적용된 폴링을 합니다.",
+      controlTitle: "컨트롤 플레인(선택 · 자격 증명 0)",
+      controlBody:
+        "apps/web(Vercel) + apps/control-plane(Oracle 무료 VM). 랜딩, 문서, 데모, 이력과 히트맵, 알림 중계만 담당합니다. 비자 사이트를 폴링하지 않습니다.",
+    },
+  },
+  features: {
+    eyebrow: "기능",
+    title: "필요한 모든 것, 감수하면 안 될 위험은 0",
+    subtitle: "MVP와 v1의 차별화 기능은 모두 「안전하게 명중률을 높인다」를 축으로 합니다.",
+    items: [
+      {
+        title: "다중 영사관 최단 슬롯",
+        body: "「수용 가능한 도시 중 가장 이른 슬롯」 —— 여러 영사관을 동시에 감시하고 최단 날짜를 자동 집계합니다.",
+        icon: "globe",
+      },
+      {
+        title: "원탭 확인",
+        body: "슬롯 발견 → 원탭 버튼이 있는 알림 → 웜 세션으로 빠른 예약 변경 시도(실험적: 예약 변경 흐름은 실제 계정에서 미검증. 결과가 불명확하면 수동 확인 요청). 항상 사람이 관여합니다.",
+        icon: "tap",
+      },
+      {
+        title: "멀티채널 알림",
+        body: "Bark(iOS), Server酱(WeChat), Telegram, Webhook. 중국 도달을 우선하며 높은 우선순위 이벤트는 모든 채널로 중복 발송합니다.",
+        icon: "bell",
+      },
+      {
+        title: "캘린더 히트맵",
+        body: "당신 자신의 폴링 이력을 7×24 히트맵으로 만들어 슬롯이 언제 풀리는지 한눈에 파악할 수 있습니다.",
+        icon: "calendar",
+      },
+      {
+        title: "최적 확인 시간대",
+        body: "릴리스 패턴 학습이 어느 시간대에 슬롯이 가장 많이 열리는지 계산합니다 —— 명중률을 높이면서 폴링은 줄입니다.",
+        icon: "spark",
+      },
+      {
+        title: "긴급 슬롯 & 필터",
+        body: "expedite / 긴급 캘린더를 감시하고 날짜 범위·요일·시간대의 세밀한 필터를 지원합니다.",
+        icon: "filter",
+      },
+    ],
+  },
+  compare: {
+    eyebrow: "솔직한 비교",
+    title: "VisaLark vs 유료 「확보 대행」 서비스",
+    subtitle: "우리는 30초 군비 경쟁에서 이길 수 있는 척하지 않습니다. 트레이드오프를 솔직히 보여줍니다.",
+    columns: { us: "VisaLark", them: "유료 프록시 확보 대행(qmq 계열 등)" },
+    rows: [
+      { label: "가격", us: "무료 · 오픈소스", them: "유료 VIP / 구독" },
+      { label: "계정 안전성", us: "주거용 IP + 우회 0, 정지 위험 최소", them: "클라우드 프록시 로테이션, 정지 위험 높음" },
+      { label: "자격 증명", us: "0 —— 비밀번호가 기기를 벗어나지 않음", them: "자격 증명을 호스팅하는 경우가 많음(허니팟 위험)" },
+      { label: "최인기 슬롯의 초 단위 「확보」", us: "약속하지 않음(프록시 전쟁에 불참)", them: "주거용 프록시 IP 군으로 승부" },
+      { label: "다중 영사관", us: "「최단 가용」 집계 네이티브 지원", them: "서비스에 따라 다름" },
+      { label: "투명성", us: "완전 오픈소스, 감사 가능", them: "비공개 블랙박스" },
+    ],
+    footnote:
+      "목표가 가장 인기 있는 몇몇 영사관의 순간적인 슬롯이라면, 유료 프록시 군이 확실히 빠릅니다 —— 다만 계정 정지라는 실제 위험을 감수해야 합니다. VisaLark는 안전하게, 장기적으로 슬롯을 잡고 싶은 사람을 위한 것입니다.",
+  },
+  install: {
+    eyebrow: "시작하기",
+    title: "3단계로 실행",
+    subtitle: "시작에 서버는 필요 없습니다. 컨트롤 플레인은 선택적 업그레이드입니다.",
+    steps: [
+      {
+        title: "1 · 브라우저 확장 설치",
+        body: "Chrome / Edge에 VisaLark 확장(데이터 플레인)을 추가하세요. 로그인된 탭 안에서만 동작합니다.",
+      },
+      {
+        title: "2 · 직접 비자 사이트에 로그인",
+        body: "평소처럼 usvisa-info에 로그인하세요. 확장은 로그인된 세션을 재사용하며 비밀번호를 저장하지 않습니다.",
+      },
+      {
+        title: "3 · 모니터 & 알림 설정",
+        body: "영사관·비자 종류·수용 가능한 날짜를 고르고 Bark / WeChat / Telegram 알림을 설정한 뒤 맡겨두세요.",
+      },
+    ],
+    extensionCta: "브라우저 확장 다운로드",
+    agentCta: "로컬 Agent 실행(고급)",
+    controlPlaneCta: "컨트롤 플레인 셀프 호스팅(선택)",
+  },
+  disclaimer: {
+    title: "법적 · 위험 고지",
+    body: [
+      "본 프로젝트는 교육 및 개인 용도로만 사용됩니다. VisaLark는 CGI Federal, 미국 국무부 또는 어떤 정부 기관과도 제휴·승인·보증 관계가 없습니다.",
+      "본 도구 사용으로 발생하는 모든 위험(비자 계정 정지, 예약 손실, MRV 수수료 손실을 포함하되 이에 국한되지 않음)은 당신이 부담합니다. 본 소프트웨어는 「있는 그대로」 제공되며 명시적·묵시적 어떤 보증도 하지 않습니다.",
+      "본 저장소에는 탐지 회피·프록시 로테이션·CAPTCHA 해독 코드가 포함되지 않습니다. 대상 사이트의 이용 약관과 거주 관할권의 법률을 준수하세요. 본 페이지는 법적 조언이 아닙니다.",
+    ],
+  },
+  footer: {
+    tagline: "오픈소스 미국 비자 예약 모니터. 계정 안전 최우선.",
+    builtWith: "TypeScript · Next.js · Fastify로 구축",
+    sections: [
+      {
+        title: "제품",
+        links: [
+          { label: "기능", href: "/#features" },
+          { label: "안전 모델", href: "/#safety" },
+          { label: "라이브 데모", href: "/demo" },
+        ],
+      },
+      {
+        title: "문서",
+        links: [
+          { label: "빠른 시작", href: "/docs#getting-started" },
+          { label: "안전 모델", href: "/docs#safety-model" },
+          { label: "컨트롤 플레인 셀프 호스팅", href: "/docs#control-plane" },
+          { label: "FAQ", href: "/docs#faq" },
+        ],
+      },
+    ],
+    legal: "CGI Federal 또는 미국 국무부와 무관. 교육 / 개인 용도, 본인 책임, 보증 없음.",
+  },
+  demo: {
+    title: "라이브 데모(모의 데이터)",
+    subtitle: "완전 오프라인 인터랙티브 데모로 실제 제품의 사용감을 보여줍니다. 네트워크 연결 없음, 비자 사이트 접촉 없음.",
+    mockNote: "모의 데이터 · 실제 네트워크 요청을 일절 하지 않음",
+    boardTitle: "영사관별 가용 슬롯 보드",
+    heatmapTitle: "슬롯 릴리스 히트맵",
+    heatmapSubtitle: "요일 × 시간으로 과거에 본 슬롯 릴리스를 표시(진할수록 릴리스 많음)",
+    bestTime: "최적 확인 시간대",
+    monitorTitle: "모니터 설정",
+    notifyTitle: "알림 설정",
+    statusLabels: { plenty: "여유", scarce: "부족", none: "없음" },
+    lastUpdated: "업데이트",
+    earliest: "최단",
+    readOnly: "읽기 전용 데모",
+    fields: {
+      cities: "감시 도시",
+      visaType: "비자 종류",
+      dateRange: "수용 가능한 날짜 범위",
+      dow: "요일 필터",
+      mode: "예약 모드",
+      cadence: "폴링 주기",
+    },
+    modes: { notify: "알림만", confirm: "원탭 확인", auto: "자동 예약 변경" },
+    channels: { bark: "Bark (iOS)", serverchan: "Server酱 (WeChat)", telegram: "Telegram", webhook: "Webhook" },
+    heartbeatNote: "하트비트 켜짐: 슬롯이 없어도 주기적으로 「모니터 작동 중」 알림이 옵니다 —— 침묵 ≠ 슬롯 없음.",
+  },
+  docs: {
+    title: "문서",
+    subtitle: "설치부터 안전 모델까지 모든 것.",
+    tocTitle: "이 페이지에서",
+  },
+};
+
+export const DICT: Record<Locale, Dict> = { zh, en, ja, ko };

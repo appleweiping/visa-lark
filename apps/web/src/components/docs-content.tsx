@@ -17,7 +17,9 @@ type DocBlock =
   | { type: "code"; text: string }
   | { type: "note"; text: string };
 
-const DOCS: Record<Locale, DocSection[]> = {
+// Long-form docs are authored in zh + en. ja/ko fall back to en until
+// full doc translations land (the marketing site is fully localized).
+const DOCS: Partial<Record<Locale, DocSection[]>> = {
   zh: [
     {
       id: "getting-started",
@@ -204,7 +206,7 @@ const DOCS: Record<Locale, DocSection[]> = {
 
 export function DocsContent() {
   const { t, locale } = useLocale();
-  const sections = DOCS[locale];
+  const sections = DOCS[locale] ?? DOCS.en ?? [];
 
   return (
     <div className="container-page py-12">
