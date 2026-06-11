@@ -7,13 +7,12 @@ import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
+import { SITE_URL } from "@/lib/site";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
-  // TODO(deploy): set to your real Vercel domain before launch — this placeholder
-  // drives canonical/sitemap/OG URLs. Or set NEXT_PUBLIC_SITE_URL.
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://visalark.example.com"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "VisaLark 签证云雀 — open-source US visa appointment monitor",
     template: "%s · VisaLark",
@@ -30,16 +29,28 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "VisaLark" }],
   openGraph: {
+    type: "website",
+    url: SITE_URL,
+    siteName: "VisaLark 签证云雀",
+    locale: "zh_CN",
+    alternateLocale: ["en_US", "ja_JP", "ko_KR"],
     title: "VisaLark 签证云雀 — open-source US visa appointment monitor",
     description:
       "Account-safety first. Residential-IP, zero-credential, zero-evasion. Catch slots you'd otherwise miss.",
-    type: "website",
-    images: ["/banner.png"],
+    images: [
+      {
+        url: "/banner.png",
+        width: 1200,
+        height: 630,
+        alt: "VisaLark 签证云雀 — open-source, account-safe US visa appointment monitor",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "VisaLark 签证云雀",
-    description: "Open-source US visa appointment monitor. Account-safety first.",
+    title: "VisaLark 签证云雀 — open-source US visa appointment monitor",
+    description:
+      "Open-source US visa appointment monitor. Account-safety first: residential-IP, zero-credential, zero-evasion.",
     images: ["/banner.png"],
   },
   robots: { index: true, follow: true },

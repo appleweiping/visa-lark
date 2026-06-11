@@ -1,5 +1,13 @@
-import type { ReactNode } from "react";
+"use client";
 
+import { useEffect, useRef, useState, type ReactNode } from "react";
+
+/**
+ * Landing section with a scroll-triggered reveal: content starts slightly
+ * translated + transparent and fades up the first time it enters the
+ * viewport (IntersectionObserver). Respects prefers-reduced-motion via the
+ * `.reveal` CSS in globals.css, and degrades to visible when IO is missing.
+ */
 export function Section({
   id,
   children,
@@ -9,9 +17,31 @@ export function Section({
   children: ReactNode;
   className?: string;
 }) {
+  const ref = useRef<HTMLElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setVisible(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisible(true);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   return (
-    <section id={id} className={`scroll-mt-20 py-20 sm:py-28 ${className}`}>
-      <div className="container-page">{children}</div>
+    <section id={id} ref={ref} className={`scroll-mt-20 py-20 sm:py-28 ${className}`}>
+      <div className={`container-page reveal ${visible ? "is-visible" : ""}`}>{children}</div>
     </section>
   );
 }

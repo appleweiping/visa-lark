@@ -102,7 +102,7 @@
     @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
   }
   .eyebrow {
-    @apply text-xs font-semibold uppercase tracking-[0.18em] text-lark-600 dark:text-lark-400;
+    @apply text-xs font-semibold uppercase tracking-[0.18em] text-primary;
   }
   .prose-doc h2 {
     @apply mt-12 scroll-mt-24 text-2xl font-bold text-foreground;
@@ -124,7 +124,7 @@
     @apply mt-3 list-decimal pl-6 text-muted-foreground;
   }
   .prose-doc code {
-    @apply rounded bg-muted px-1.5 py-0.5 font-mono text-[0.85em] text-lark-700 dark:text-lark-300;
+    @apply rounded bg-muted px-1.5 py-0.5 font-mono text-[0.85em] text-primary;
   }
   .prose-doc pre {
     @apply mt-4 overflow-x-auto rounded-xl bg-slate-900 p-4 text-sm text-slate-100 dark:bg-black;
@@ -189,4 +189,65 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+/* ---------- Scroll-triggered reveal (landing sections) ---------- */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ---------- Two-plane architecture diagram: slow dashed-line flow ---------- */
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -48;
+  }
+}
+.flow-dash {
+  stroke-dasharray: 6 6;
+  animation: dash-flow 6s linear infinite;
+}
+.flow-dash-slow {
+  stroke-dasharray: 4 8;
+  animation: dash-flow 9s linear infinite;
+}
+
+/* ---------- Demo page entrance: staggered fade-up ---------- */
+@keyframes demo-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.demo-enter {
+  animation: demo-fade-up 0.6s ease-out both;
+}
+.demo-enter-1 { animation-delay: 0.08s; }
+.demo-enter-2 { animation-delay: 0.16s; }
+.demo-enter-3 { animation-delay: 0.24s; }
+
+/* Reduced motion: everything lands instantly, nothing flows. */
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .flow-dash,
+  .flow-dash-slow {
+    animation: none;
+  }
+  .demo-enter {
+    animation: none;
+  }
 }
