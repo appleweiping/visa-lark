@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./assets/banner.png" alt="VisaLark 签证云雀 — open-source US visa appointment monitor" width="100%" />
+<img src="./assets/banner.gif" alt="VisaLark 签证云雀 — open-source US visa appointment monitor" width="100%" />
 
 # VisaLark · 签证云雀
 
