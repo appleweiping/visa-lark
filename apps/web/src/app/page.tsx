@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { ArrowRight, Check } from "lucide-react";
 import { useLocale } from "@/lib/locale-context";
 import { Button } from "@/components/ui/button";
@@ -15,13 +17,24 @@ import {
   DisclaimerSection,
 } from "@/components/landing-sections";
 
+// Three.js hero scene — client-only, no SSR. When WebGL is missing or the
+// user prefers reduced motion it stays inactive and the static hero visuals
+// below remain exactly as before.
+const HeroScene = dynamic(() => import("@/components/hero-scene"), { ssr: false });
+
 export default function LandingPage() {
   const { t } = useLocale();
+  const [sceneActive, setSceneActive] = useState(false);
 
   return (
     <>
       {/* ===================== Hero ===================== */}
       <section className="relative overflow-hidden bg-grid hero-mesh">
+        {/* 3D backdrop: the lark catches the earlier date. */}
+        <HeroScene
+          onActiveChange={setSceneActive}
+          className="pointer-events-none absolute inset-0 z-0 opacity-80 sm:opacity-100"
+        />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-background/30 to-background" />
         <div className="pointer-events-none absolute -top-24 left-1/2 h-72 w-[42rem] -translate-x-1/2 rounded-full bg-lark-300/30 blur-3xl dark:bg-lark-700/20" />
         <div className="container-page relative grid gap-12 py-20 sm:py-28 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
@@ -65,8 +78,17 @@ export default function LandingPage() {
             </ul>
           </div>
 
-          {/* Hero art placeholder — real mascot/banner art generated later. */}
-          <div className="relative animate-fade-up">
+          {/* Hero art placeholder — real mascot/banner art generated later.
+              When the 3D scene is active it takes over this column visually,
+              so the static card gently fades out (and returns as fallback). */}
+          <div
+            aria-hidden={sceneActive}
+            // NB: animate-fade-up must come off when hiding — its `both` fill
+            // mode would otherwise pin opacity at 1 and beat the opacity-0 class.
+            className={`relative transition-opacity duration-700 ${
+              sceneActive ? "pointer-events-none opacity-0" : "animate-fade-up opacity-100"
+            }`}
+          >
             <div className="relative mx-auto max-w-md">
               <div className="absolute -inset-4 rounded-3xl bg-gradient-to-tr from-lark-400/20 to-feather-300/20 blur-2xl" />
               <div className="relative overflow-hidden rounded-2xl border bg-card shadow-sm">

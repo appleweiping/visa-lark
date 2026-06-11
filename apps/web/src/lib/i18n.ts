@@ -74,6 +74,20 @@ export interface Dict {
       controlTitle: string;
       controlBody: string;
     };
+    diagram: {
+      aria: string;
+      dataTitle: string;
+      dataSub: string;
+      dataLine1: string;
+      dataLine2: string;
+      controlTitle: string;
+      controlSub: string;
+      controlLine1: string;
+      controlLine2: string;
+      flowLabel: string;
+      notifyLabel: string;
+      caption: string;
+    };
   };
   features: {
     eyebrow: string;
@@ -211,6 +225,20 @@ const zh: Dict = {
       controlTitle: "控制面（可选 · 零凭据）",
       controlBody:
         "apps/web（Vercel）+ apps/control-plane（Oracle 免费 VM）。只做落地页、文档、演示、历史与热力图、通知中转。永不轮询签证网站。",
+    },
+    diagram: {
+      aria: "双平面架构示意图：住宅数据面与中转控制面",
+      dataTitle: "数据面",
+      dataSub: "你的住宅网络",
+      dataLine1: "浏览器扩展 / 本地 Agent",
+      dataLine2: "真实会话 · 住宅 IP · 零凭据",
+      controlTitle: "控制面",
+      controlSub: "可选中转 · 零凭据",
+      controlLine1: "历史 · 热力图 · 通知中转",
+      controlLine2: "永不轮询签证网站",
+      flowLabel: "仅可用性历史（可选）",
+      notifyLabel: "推送到你的手机",
+      caption: "只有数据面接触签证网站——并且它只运行在你自己的住宅网络上。",
     },
   },
   features: {
@@ -424,6 +452,20 @@ const en: Dict = {
       controlBody:
         "apps/web (Vercel) + apps/control-plane (Oracle free VM). Landing, docs, demo, history + heatmap, notification relay only. Never polls the visa site.",
     },
+    diagram: {
+      aria: "Two-plane architecture diagram: residential data plane and relay control plane",
+      dataTitle: "Data plane",
+      dataSub: "your residential network",
+      dataLine1: "Browser extension / local agent",
+      dataLine2: "real session · residential IP · zero credentials",
+      controlTitle: "Control plane",
+      controlSub: "optional relay · zero credentials",
+      controlLine1: "history · heatmap · notification relay",
+      controlLine2: "never polls the visa site",
+      flowLabel: "availability history only (optional)",
+      notifyLabel: "push to your phone",
+      caption: "Only the data plane ever touches the visa site — and it only runs on your own residential network.",
+    },
   },
   features: {
     eyebrow: "Features",
@@ -636,6 +678,20 @@ const ja: Dict = {
       controlBody:
         "apps/web（Vercel）+ apps/control-plane（Oracle 無料 VM）。ランディング、ドキュメント、デモ、履歴とヒートマップ、通知中継のみ。ビザサイトをポーリングすることはありません。",
     },
+    diagram: {
+      aria: "2 層アーキテクチャ図：住宅用データプレーンと中継コントロールプレーン",
+      dataTitle: "データプレーン",
+      dataSub: "あなたの住宅用ネットワーク",
+      dataLine1: "ブラウザ拡張 / ローカル Agent",
+      dataLine2: "本物のセッション · 住宅用 IP · 資格情報ゼロ",
+      controlTitle: "コントロールプレーン",
+      controlSub: "任意の中継 · 資格情報ゼロ",
+      controlLine1: "履歴 · ヒートマップ · 通知中継",
+      controlLine2: "ビザサイトはポーリングしない",
+      flowLabel: "空き枠履歴のみ（任意）",
+      notifyLabel: "スマホへプッシュ",
+      caption: "ビザサイトに触れるのはデータプレーンだけ —— それもあなた自身の住宅用ネットワーク上だけで動きます。",
+    },
   },
   features: {
     eyebrow: "機能",
@@ -847,6 +903,20 @@ const ko: Dict = {
       controlTitle: "컨트롤 플레인(선택 · 자격 증명 0)",
       controlBody:
         "apps/web(Vercel) + apps/control-plane(Oracle 무료 VM). 랜딩, 문서, 데모, 이력과 히트맵, 알림 중계만 담당합니다. 비자 사이트를 폴링하지 않습니다.",
+    },
+    diagram: {
+      aria: "2계층 아키텍처 다이어그램: 주거용 데이터 플레인과 중계 컨트롤 플레인",
+      dataTitle: "데이터 플레인",
+      dataSub: "당신의 주거용 네트워크",
+      dataLine1: "브라우저 확장 / 로컬 Agent",
+      dataLine2: "실제 세션 · 주거용 IP · 자격 증명 0",
+      controlTitle: "컨트롤 플레인",
+      controlSub: "선택적 중계 · 자격 증명 0",
+      controlLine1: "이력 · 히트맵 · 알림 중계",
+      controlLine2: "비자 사이트를 폴링하지 않음",
+      flowLabel: "가용성 이력만(선택)",
+      notifyLabel: "휴대폰으로 푸시",
+      caption: "비자 사이트에 닿는 것은 데이터 플레인뿐 —— 그것도 당신 자신의 주거용 네트워크에서만 실행됩니다.",
     },
   },
   features: {

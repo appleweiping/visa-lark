@@ -33,7 +33,7 @@ export default function DemoPage() {
     <div className="bg-muted/40">
       <div className="container-page py-12">
         {/* Header */}
-        <div className="flex flex-col gap-3">
+        <div className="demo-enter flex flex-col gap-3">
           <Badge className="w-fit gap-1.5 border-transparent bg-feather-100 text-feather-700 hover:bg-feather-100 dark:bg-feather-900/40 dark:text-feather-200">
             <span className="h-1.5 w-1.5 rounded-full bg-feather-500" /> {t.demo.mockNote}
           </Badge>
@@ -43,20 +43,20 @@ export default function DemoPage() {
 
         <div className="mt-8 grid gap-6 lg:grid-cols-3">
           {/* Availability board spans 2 cols on large screens */}
-          <div className="lg:col-span-2">
+          <div className="demo-enter demo-enter-1 lg:col-span-2">
             <BoardCard board={board} />
           </div>
-          <div className="flex flex-col gap-6">
+          <div className="demo-enter demo-enter-2 flex flex-col gap-6">
             <BestTimeCard bestHour={heatmap.bestHour} />
             <NotifyPreview />
           </div>
         </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+          <div className="demo-enter demo-enter-2 lg:col-span-2">
             <HeatmapCard counts={heatmap.counts} max={heatmap.max} dowLabels={dowLabels} />
           </div>
-          <div>
+          <div className="demo-enter demo-enter-3">
             <MonitorConfig />
           </div>
         </div>

@@ -22,6 +22,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { TwoPlaneDiagram } from "@/components/two-plane-diagram";
 
 const GITHUB_URL = "https://github.com/appleweiping/visa-lark";
 
@@ -67,7 +68,7 @@ export function SafetySection() {
             <CardContent className="flex flex-1 flex-col">
               <p className="text-sm leading-6 text-muted-foreground">{pillar.body}</p>
               <Tooltip>
-                <TooltipTrigger className="mt-4 self-start text-left text-xs font-semibold text-lark-700 underline-offset-2 hover:underline dark:text-lark-300">
+                <TooltipTrigger className="mt-4 self-start text-left text-xs font-semibold text-primary underline-offset-2 hover:underline">
                   Why this matters →
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">{pillar.why}</TooltipContent>
@@ -77,8 +78,11 @@ export function SafetySection() {
         ))}
       </div>
 
-      {/* Two-plane diagram */}
-      <div className="mt-10 grid gap-4 md:grid-cols-2">
+      {/* Animated two-plane architecture diagram */}
+      <TwoPlaneDiagram />
+
+      {/* Two-plane detail cards */}
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
         <Card className="border-2 border-lark-200 dark:border-lark-800">
           <CardHeader>
             <div>
@@ -137,33 +141,40 @@ export function CompareSection() {
   return (
     <Section id="compare" className="bg-muted/40">
       <SectionHeading eyebrow={t.compare.eyebrow} title={t.compare.title} subtitle={t.compare.subtitle} />
-      <div className="mt-10 overflow-hidden rounded-2xl border bg-card">
+      <div className="mt-10 overflow-hidden rounded-2xl border bg-card shadow-sm">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead />
-              <TableHead>
-                <span className="inline-flex items-center gap-1.5 font-semibold text-primary">
-                  <span className="h-2 w-2 rounded-full bg-lark-500" />
+            <TableRow className="border-b-2 bg-muted/50 hover:bg-muted/50">
+              <TableHead className="w-[26%]" />
+              <TableHead className="w-[40%] bg-primary/[0.06] py-4">
+                <span className="inline-flex items-center gap-2 text-sm font-bold text-primary">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-pulse-soft rounded-full bg-primary/60" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+                  </span>
                   {t.compare.columns.us}
                 </span>
               </TableHead>
-              <TableHead className="font-semibold text-muted-foreground">{t.compare.columns.them}</TableHead>
+              <TableHead className="py-4 font-semibold text-muted-foreground">
+                {t.compare.columns.them}
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {t.compare.rows.map((row) => (
-              <TableRow key={row.label}>
-                <TableHead scope="row" className="font-medium text-foreground">
+              <TableRow key={row.label} className="group transition-colors">
+                <TableHead scope="row" className="py-4 align-top font-medium text-foreground">
                   {row.label}
                 </TableHead>
-                <TableCell className="text-foreground">
-                  <span className="inline-flex items-start gap-1.5">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-lark-500" />
+                <TableCell className="bg-primary/[0.04] py-4 align-top text-foreground transition-colors group-hover:bg-primary/[0.08]">
+                  <span className="inline-flex items-start gap-2">
+                    <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary/10">
+                      <Check className="h-3.5 w-3.5 text-primary" />
+                    </span>
                     {row.us}
                   </span>
                 </TableCell>
-                <TableCell className="text-muted-foreground">{row.them}</TableCell>
+                <TableCell className="py-4 align-top text-muted-foreground">{row.them}</TableCell>
               </TableRow>
             ))}
           </TableBody>
