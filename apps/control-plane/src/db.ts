@@ -115,13 +115,13 @@ export class Store {
       params.facilityId = filter.facilityId;
     }
     const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-    const limit = Math.min(Math.max(filter.limit ?? 1000, 1), 10000);
+    params.limit = Math.min(Math.max(filter.limit ?? 1000, 1), 10000);
     const stmt = this.db.prepare(
       `SELECT id, monitor_id AS monitorId, facility_id AS facilityId,
               date, observed_at AS observedAt
        FROM observation ${where}
        ORDER BY observed_at DESC
-       LIMIT ${limit}`,
+       LIMIT @limit`,
     );
     return stmt.all(params) as ObservationRow[];
   }

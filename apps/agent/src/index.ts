@@ -156,7 +156,7 @@ async function relay(
 ): Promise<void> {
   if (!cfg.controlPlaneUrl || !cfg.controlPlaneToken || dates.length === 0) return;
   try {
-    await fetch(`${cfg.controlPlaneUrl.replace(/\/$/, "")}/api/observations`, {
+    const res = await fetch(`${cfg.controlPlaneUrl.replace(/\/$/, "")}/api/observations`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -164,8 +164,9 @@ async function relay(
       },
       body: JSON.stringify({ monitorId, dates, at }),
     });
+    if (!res.ok) log(`control-plane relay rejected: HTTP ${res.status}`);
   } catch {
-    /* control plane optional */
+    /* control plane optional — a relay failure must never break monitoring */
   }
 }
 
