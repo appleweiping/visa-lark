@@ -11,7 +11,7 @@ the extension's confirm page so *you* approve the reschedule — human-in-the-lo
 logged-in session.
 
 It does **not** promise to "grab" the hottest slots in seconds, and it contains **zero** evasion
-code. See the [root README](../../README.md) and [DESIGN.md](../../DESIGN.md) for the honest
+code. See the [root README](../../README.md) and [DESIGN.md](../../DESIGN.md) for the
 trade-off and the full threat model.
 
 ## MV3 architecture

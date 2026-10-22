@@ -1,12 +1,9 @@
 # VisaLark (签证云雀) — Design & Threat Model
 
 > An open-source US visa appointment **monitor + assisted booking** tool.
-> Honest positioning: improves your odds of catching slots you'd otherwise miss.
-> It does **not** promise to win the sub-30-second arms race for the hottest slots —
-> that race is won only by paid residential-proxy IP fleets, which get accounts banned
-> and repos taken down. We refuse to play it. See [Non-Goals](#non-goals).
-
-Status: **active build**. Date: 2026-06-09.
+> It improves your odds of catching slots you would otherwise miss. It does **not** try to
+> win slots that vanish within seconds of release; that needs proxy pools and evasion,
+> which this project leaves out. See [Non-Goals](#10-non-goals-explicit-in-readme-too).
 
 ---
 
@@ -24,9 +21,9 @@ may miss travel window, may waste the MRV fee).
 **Therefore: the code that talks to usvisa-info MUST run on the user's own residential
 connection and reuse the user's own real browser session. It cannot run on a cloud server.**
 
-This is why qmq.app spends >¥100k/mo on residential proxy fleets and had to go paid VIP.
-We do not compete on that axis. We win on **safety, transparency, multi-consulate breadth,
-release-pattern intelligence, and zero-credential privacy** instead.
+Speed at any cost is therefore not on the table. The project aims for account safety,
+transparency, watching several consulates at once, learning when slots tend to be released,
+and never holding credentials.
 
 ## 2. Two-plane architecture
 
@@ -125,11 +122,11 @@ Pluggable `NotifyChannel`. Ship: **Bark (iOS)**, **ServerChan/WeChat (Server酱)
 NOT stored by default**) · `session` (yatri_session_cookie_enc, authenticity_token, acquired_at,
 status) · `facility` (seed) · `monitor` (facility_ids[], visa_type, date_min/max, dow_filter,
 tod_filter, expedite, mode, poll_profile, enabled) · `slot_observation` (time-series → heatmap /
-release-pattern model — the moat) · `poll_log` (status, latency, next_backoff — ban-safety
+release-pattern model) · `poll_log` (status, latency, next_backoff — ban-safety
 analytics + scheduler state) · `booking_attempt` (status, interlock results) · `notification` ·
 `settings` (channel configs, dashboard token, poll_global_min_interval).
 
-## 9. 顶级 differentiators (vs qmq + OSS forks), ranked
+## 9. Feature plan
 
 MVP: one-tap-confirm · **multi-consulate "earliest across my acceptable cities"** · notify breadth
 (Bark/ServerChan/TG/email) · date-range + DoW + time-of-day filters · session-health + re-login alert.
@@ -143,7 +140,7 @@ Later: multi-account · group/family same-day · FIFA-2026 surge preset.
 - ❌ No hosted multi-tenant service holding users' visa credentials (credential honeypot,
   mass-automation CFAA/ToS target, PIPL/GDPR controller liability).
 - ❌ No CAPTCHA solving, no proxy rotation, no anti-fingerprinting / stealth, no detection evasion.
-- ❌ No "guaranteed grab" / "秒级抢到" marketing. We say what's true: odds improvement.
+- ❌ No "guaranteed grab" / "秒级抢到" claims; the tool improves the odds, nothing more.
 - ❌ No cloud-IP polling of usvisa-info.
 - ❌ No DS-160 form filling (different system, scope creep).
 

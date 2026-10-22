@@ -1,146 +1,93 @@
-<div align="center">
+# VisaLark
 
-<img src="./assets/banner.png" alt="VisaLark — open-source US visa appointment monitor" width="100%" />
+[![ci](https://github.com/appleweiping/visa-lark/actions/workflows/ci.yml/badge.svg)](https://github.com/appleweiping/visa-lark/actions/workflows/ci.yml) · [中文说明](README.zh.md)
 
-# VisaLark · 签证云雀
+VisaLark checks the US visa appointment calendar on `ais.usvisa-info.com` from your own logged-in browser and pings your phone (Bark, ServerChan/WeChat, Telegram or a webhook) when an earlier date opens at a consulate you would accept.
 
-**English** · [日本語](./README.ja.md) · [한국어](./README.ko.md) · [中文](./README.zh.md)
+> [!WARNING]
+> **Read before using.** Automated access to the appointment site may break its terms of service, and the site can restrict accounts it considers automated. You use VisaLark at your own risk. It only reuses the session you logged into yourself, never stores your password, does not solve CAPTCHAs or rotate proxies, and stops as soon as the site challenges it. Automatic rescheduling is **off by default**, replaces your existing appointment when it fires, and has not been verified end to end against real accounts.
 
-**Open-source, account-safe US visa appointment monitor. Zero stored credentials. Zero evasion. No proxy arms race.**
+| Extension popup | Auto-reschedule settings (off unless you choose the "auto" mode) |
+|---|---|
+| <img src="docs/img/popup.png" width="300" alt="Popup with session status, three monitors and recent checks"> | <img src="docs/img/options-autobook.png" width="520" alt="Auto-book settings: minimum improvement, allowed consulates, confirm first N, daily cap, dry-run, kill switch"> |
 
-[![tests](https://img.shields.io/badge/tests-101%20passing-2fae6a)]() [![license](https://img.shields.io/badge/license-Apache--2.0-6b8cff)](./LICENSE) [![made with](https://img.shields.io/badge/TypeScript-strict-3178c6)]()
+Both screenshots are the built extension rendered with made-up data (no real account involved).
 
-[Features](#-features) · [How it protects your account](#%EF%B8%8F-how-it-protects-your-account) · [Install](#-install) · [vs. qmq](#-honest-comparison) · [Disclaimer](#%EF%B8%8F-disclaimer)
+## Why I built it
 
-</div>
+Moving a US visa interview earlier usually means refreshing the scheduling page for days, especially at the consulates in China. The scripts I found either run on a cloud server or ask for your password, and both made me nervous about the visa account itself. I wanted something that does the boring part, checking every few minutes at a slow, jittered pace from the browser I already logged into, and tells my phone when a date worth taking shows up.
 
----
+It will not win slots that disappear within seconds of being released, and it does not try to: that requires the proxy pools and evasion this project leaves out on purpose.
 
-## What is this
+## What it does
 
-VisaLark monitors <strong>your own</strong> visa-appointment availability on `ais.usvisa-info.com` (CGI Federal). When a slot matches your filters it <strong>pushes instantly</strong> to WeChat / iOS / Telegram, and optionally lets you <strong>reschedule with one tap</strong> or <strong>reschedule automatically</strong> behind strict safety interlocks.
+- **Watches several consulates at once** and reports the earliest date that fits your filters (date window, weekdays, time of day). The expedite calendar can be watched too.
+- **Notifies** through Bark (iOS), ServerChan (WeChat), Telegram, a generic webhook and the browser's own notifications.
+- **Three modes per monitor:** `notify` (default) only alerts; `confirm` puts a button in the alert that opens a confirmation page, and you click to reschedule; `auto` reschedules on its own, behind the checks below.
+- **Backs off on trouble.** An expired session (401, redirect to sign-in) or a challenge page (403, CAPTCHA) pauses the monitor and alerts you; rate limiting (429, Cloudflare error 1015) triggers a long back-off. It never tries to get past any of them.
 
-It is <strong>honest</strong> about what it can and can't do:
+### Safety checks in the code
 
-- ✅ Catches slots you'd otherwise miss — especially less-crowded consulates, any-earlier dates, and expedite/emergency openings.
-- ✅ Watches multiple consulates at once and takes the earliest slot among the cities you'll accept.
-- ✅ Account-safety first: reuses the session already logged into your browser. Never stores passwords, never spoofs fingerprints, never bypasses CAPTCHAs.
-- ❌ Does <strong>not</strong> promise to "grab in seconds" the hottest slots. Those vanish in 30 seconds and can only be won with paid residential-proxy clusters — the arms race that has qmq burning huge sums monthly, forced to charge, and that gets accounts banned and repos taken down. <strong>We don't fight that war.</strong>
+- Polling profiles of about 5, 3 or 1.5 minutes with ±40–50% jitter, plus a per-account daily request cap (`packages/shared/src/safety.ts`).
+- The local agent looks up its public IP's network and refuses to start on a cloud/datacenter network unless you override it (`apps/agent/src/ip-guard.ts`). A login from home followed by requests from a datacenter is a common account-takeover signal, so the part that talks to the site should run where you logged in.
+- `auto` mode only books when the new date is earlier by at least N days, at a consulate you allow-listed, after the first N bookings were confirmed by hand, within a per-day cap, with a kill switch and a dry-run mode (`packages/shared/src/interlocks.ts`). If the site's response is unclear the attempt is marked failed and you are asked to check manually.
 
-> Why is it built this way? See [How it protects your account](#%EF%B8%8F-how-it-protects-your-account). The full threat model is in [DESIGN.md](./DESIGN.md).
+## Install
 
-## ✨ Features
+### Browser extension (recommended)
 
-| Feature | Description |
-|---------|-------------|
-| 🎯 **Earliest slot across consulates** | One monitor watches multiple consulates and auto-picks the earliest date matching your filters |
-| 🔔 **One-tap confirm** | The push includes a button — tap it to reschedule in <1s using your warm logged-in session (human-in-the-loop, compliant) |
-| 🤖 **Auto-reschedule (optional)** | Off by default. When on, guarded by multiple interlocks: only-earlier slots, allowlisted consulates only, first N need manual confirm, daily cap, kill switch, dry-run mode |
-| 📅 **Date / weekday / time-of-day filters** | Alerts only within windows you'll actually accept — no noise |
-| 📡 **Multi-channel notifications** | Bark (iOS) · ServerChan (WeChat) · Telegram · Webhook (WeCom/Discord) · native browser. High-priority fires all channels at once |
-| 🚑 **Expedite/emergency monitoring** | Watches the expedite calendar for urgent travel |
-| 🔑 **Session health checks** | Session expired / challenge hit → stops immediately and asks you to re-sync. Never forces through |
-| 📊 **Availability history + heatmap** | An optional control panel records availability history and learns "which time windows release slots most often" |
-
-## 🛡️ How it protects your account
-
-The US visa system runs <strong>per-user behavioral ML</strong> + Cloudflare + reCAPTCHA. The most lethal ban signal is <strong>not</strong> polling frequency — it's an <strong>ASN / impossible-travel mismatch</strong>:
-
-> You log in from a residential network, but the same session then hits `/days/*.json` from a US datacenter IP — that's a textbook "account-takeover / automation" signature and will <strong>get your real visa account banned fast</strong> (slow appeals, missed trips, forfeited visa fees).
-
-So VisaLark uses a <strong>two-plane architecture</strong>:
-
-```
-┌─── Your residential network (data plane: the only part touching the visa site) ───┐
-│  Browser extension (recommended, beginner-friendly)  or  local Agent (24x7 geek)  │
-│  → reuses your real login session, residential IP, real browser fingerprint        │
-│  → zero password storage, zero CAPTCHA solving, zero proxies                       │
-└──────────────────────────────────────────┬───────────────────────────────────────┘
-                                           │ (optional) report availability history / relay notifications
-                                           ▼
-┌──────── Control panel (never touches the visa site, zero credentials) ────────┐
-│  Vercel landing/docs/demo   +   free server (Oracle Free) running              │
-│  history / heatmap / notification relay                                         │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-Three <strong>hard rules</strong> (written into the code, guarded by tests):
-
-1. **Data plane runs on residential IP only** — the Agent checks its egress IP and refuses to start by default if it detects a datacenter ASN.
-2. **Zero evasion code** — no proxy rotation, no TLS spoofing, no CAPTCHA solving. This is both the <strong>legal shield</strong> and the <strong>account shield</strong>.
-3. **Fail-stop** — on a challenge / 401 / 1015, stop immediately and alert a human. Never force through.
-
-## 📦 Install
-
-### Option A: Browser extension (recommended, for most people)
-
-1. Download the extension from [Releases](https://github.com/appleweiping/visa-lark/releases), or build it yourself:
+1. Download `visalark-extension-<version>.zip` from [Releases](https://github.com/appleweiping/visa-lark/releases) (built by CI from the tagged commit) and unzip it, or build it yourself:
    ```bash
-   pnpm install && pnpm --filter @visa-lark/extension build
-   # dist is at apps/extension/dist — Chrome/Edge → Extensions → Load unpacked
+   pnpm install
+   pnpm build:packages
+   pnpm --filter @visa-lark/extension build      # output: apps/extension/dist
    ```
-2. Log into `ais.usvisa-info.com` <strong>in your own browser</strong> and open the appointment/reschedule page.
-3. Click the extension icon → "Sync current session" (auto-reads consulate and schedule id — no manual entry).
-4. Add a monitor (consulate, visa type, date range, mode) and notification channels in Settings.
-5. Done. The extension checks on a jittered schedule in the background using your session and pushes when a slot appears.
+2. Open `chrome://extensions` (or `edge://extensions`), enable Developer mode, click **Load unpacked** and choose the folder.
+3. Log in to `ais.usvisa-info.com` yourself and open the reschedule page.
+4. Click the VisaLark icon → **Sync session**. It reads the consulate and schedule id from the page URL.
+5. In Settings, add a monitor (consulates, visa type, date window, mode) and at least one notification channel.
 
-### Option B: Local Agent (for geeks — 24x7 without keeping a browser open)
+### Local agent (runs without a browser open)
+
+For a home PC or Raspberry Pi, not a cloud server:
 
 ```bash
-pnpm install && pnpm --filter @visa-lark/agent build
+pnpm install && pnpm build:packages && pnpm --filter @visa-lark/agent build
 cp apps/agent/visalark.config.example.json apps/agent/visalark.config.json
-# Edit: paste the _yatri_session cookie exported from your logged-in browser + consulate + schedule id + channels
+# paste the _yatri_session cookie from your logged-in browser, consulate, schedule id and channels
 node apps/agent/dist/index.js apps/agent/visalark.config.json
 ```
 
-> ⚠️ Run it on <strong>your home network</strong> (home PC / Raspberry Pi). Do <strong>not</strong> run it on a cloud server — see the safety model above. The Agent auto-detects and refuses to start on a datacenter IP.
+### Optional control plane
 
-### Optional: control panel (history / heatmap / notification relay, zero credentials)
+`apps/control-plane` is a small Fastify + SQLite service that keeps a history of seen dates (and a heatmap of when slots tend to appear) and can relay notifications. It never receives visa credentials. See [apps/control-plane/README.md](apps/control-plane/README.md).
 
-Deploy on a free [Oracle Cloud Always Free](https://www.oracle.com/cloud/free/) VM; the landing/docs deploy on Vercel. See [apps/control-plane/README](./apps/control-plane) and [DESIGN.md](./DESIGN.md).
-
-## 🤝 Honest comparison
-
-| | **VisaLark** | qmq.app | OSS visa_rescheduler forks |
-|--|--|--|--|
-| Open source | ✅ Apache-2.0 | ❌ Closed | ✅ |
-| Price | Free | Paid VIP | Free |
-| Account safety | ✅ Residential IP + reuse real session | ⚠️ Proxy clusters, may rate-limit / trip risk controls | ⚠️ Often run in datacenters, ban risk |
-| Stores your password | ❌ Never | ? | ⚠️ Often plaintext |
-| CAPTCHA/proxy evasion | ❌ Zero evasion | ✅ Burns money on the arms race | ⚠️ Partial |
-| China-reachable notifications | ✅ WeChat/Bark | ⚠️ Telegram only | ⚠️ Mostly Telegram/email |
-| Grabbing the hottest flash slots | ❌ Doesn't promise (honest) | ✅ Headline (via proxy clusters) | ❌ |
-| Multi-channel + one-tap confirm + interlocks | ✅ | Partial | ❌ |
-
-<strong>In one line</strong>: if you want "any earlier slot / less-crowded consulates / expedite slots," VisaLark is free, open-source, and won't get you banned. If you insist on the 30-second flash slots, no responsible self-hosted tool can win that war — that's fought by paid operators carrying the ban risk. We won't lie to you about it.
-
-## 🧩 Monorepo
+## Repository layout
 
 ```
-packages/shared              # Adapter-agnostic core: types + engine + safety + interlocks + notify interface (36 tests)
-packages/adapter-usvisa-info # The only code that touches usvisa-info: endpoints/parsing/reschedule/fail-stop (16 tests)
-packages/notify              # Bark / ServerChan / Telegram / Webhook channels (5 tests)
-apps/extension               # MV3 browser extension (primary data plane, beginner-friendly; 15 tests)
-apps/agent                   # Local Node Agent (geek data plane, residential-IP guarded; 7 tests)
-apps/control-plane           # Fastify + better-sqlite3 control panel (zero credentials, 22 tests)
-apps/web                     # Next.js landing/docs/demo (deployed on Vercel)
+packages/shared               scheduling, safety limits, auto-book checks, shared types
+packages/adapter-usvisa-info  the only code that talks to the visa site
+packages/notify               Bark, ServerChan, Telegram and webhook channels
+apps/extension                Manifest V3 extension (vanilla TypeScript + Vite)
+apps/agent                    local Node agent with the residential-IP check
+apps/control-plane            optional history / relay service
+apps/web                      landing page and mock demo, deployed at visa-lark.vercel.app
 ```
 
-## ⚖️ Disclaimer
+[DESIGN.md](DESIGN.md) has the threat model and the reasoning behind these choices.
 
-VisaLark is an open-source tool for <strong>education and personal use</strong>, <strong>not affiliated with CGI Federal or the U.S. Department of State</strong>.
+## Development
 
-- Using this tool to access the visa system <strong>may violate its Terms of Service</strong>, and automated access <strong>may get your visa account restricted or banned</strong>. <strong>You assume all account and legal risk.</strong>
-- This project contains <strong>no CAPTCHA-bypass / anti-bot-evasion / proxy</strong> code, and <strong>explicitly forbids</strong> multi-tenant hosting (it never holds anyone's visa credentials).
-- This project provides <strong>no</strong> hosted service and promises <strong>no</strong> appointment will be secured.
-- This is not legal advice. Consult a lawyer before any commercial or hosted use.
-- `auto` reschedule is a destructive operation (it replaces your existing appointment), off by default — understand all interlocks before enabling it.
-- **Reschedule/booking is experimental**: the usvisa-info reschedule form fields and confirmation flow are not fully verified against real accounts; when the result is unclear the tool marks it `failed` and asks you to <strong>verify manually</strong> — it never fakes success. Monitoring/notifications are the core, most reliable parts; validate auto/one-tap reschedule with <strong>dry-run mode</strong> first.
+```bash
+pnpm install
+pnpm build:packages                          # the apps import the built packages
+pnpm -r --filter "!@visa-lark/web" test      # vitest in every package and app
+```
 
-Licensed under [Apache-2.0](./LICENSE). No warranty.
+CI runs the same steps, builds the extension and uploads the zip as an artifact; pushing a `v*` tag publishes that zip as a GitHub release.
 
----
+## Disclaimer
 
-<div align="center">
-<sub>Built with 🐦 by the VisaLark contributors · account safety > grabbing speed</sub>
-</div>
+VisaLark is a personal, non-commercial project and is not affiliated with CGI Federal or the U.S. Department of State. It does not provide a hosted service, holds nobody's credentials and cannot promise you an appointment. Nothing here is legal advice.
+
+Licensed under [Apache-2.0](LICENSE).

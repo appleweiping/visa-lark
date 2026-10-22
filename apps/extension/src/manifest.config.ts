@@ -16,7 +16,7 @@ export default defineManifest({
   name: "VisaLark 签证云雀 — US Visa Appointment Monitor",
   version: "0.1.0",
   description:
-    "Open-source, account-safe US visa appointment monitor. Rides your own browser session — zero credentials stored, zero evasion. Improves your odds; no proxy arms race.",
+    "Checks the US visa appointment calendar from the session you are logged into and notifies you when an earlier date opens. Stores no password.",
   icons: {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",

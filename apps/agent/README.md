@@ -79,7 +79,7 @@ On startup the agent checks its egress IP's organization/ASN (via ipinfo.io with
 provider, best-effort). If it looks like **datacenter / cloud infrastructure, the agent refuses to
 start** (exit code 2) unless you explicitly set `allowDatacenterIp: true` — which is documented as
 a bad idea, because a cloud ASN that doesn't match your login location is the #1 account-ban
-vector. If the lookup fails entirely the agent proceeds with a warning; the guard is an honest
+vector. If the lookup fails entirely the agent proceeds with a warning; the guard is a
 heuristic, not a guarantee, so keep yourself on a residential connection regardless.
 
 ## Safety interlocks (summary)

@@ -1,146 +1,79 @@
-<div align="center">
+# VisaLark 签证云雀
 
-<img src="./assets/banner.png" alt="VisaLark 签证云雀 — open-source US visa appointment monitor" width="100%" />
+[English](README.md)
 
-# VisaLark · 签证云雀
+VisaLark 用你自己已经登录的浏览器会话，定时查看 `ais.usvisa-info.com` 上的美签面签日历；你能接受的领馆出现更早的日期时，通过 Bark、Server 酱（微信）、Telegram 或 webhook 推送到手机。
 
-[English](./README.md) · [日本語](./README.ja.md) · [한국어](./README.ko.md) · **中文**
+> [!WARNING]
+> **使用前请先读这一段。** 对预约网站的自动访问可能违反其服务条款，网站也可能限制它认为是自动化操作的账号，风险由使用者自己承担。VisaLark 只复用你自己登录的会话，不保存密码，不破解验证码，不使用代理轮换，一遇到验证拦截就停下。自动改期**默认关闭**，触发时会替换你现有的预约，而且还没有在真实账号上完整验证过。
 
-**开源、账号安全的美签预约监控工具。不存密码，不绕验证码，不打代理军备竞赛。**
+| 扩展弹窗 | 自动改期设置（只有选了 auto 模式才会用到） |
+|---|---|
+| <img src="docs/img/popup.png" width="300" alt="扩展弹窗"> | <img src="docs/img/options-autobook.png" width="520" alt="自动改期设置"> |
 
-[![tests](https://img.shields.io/badge/tests-101%20passing-2fae6a)]() [![license](https://img.shields.io/badge/license-Apache--2.0-6b8cff)](./LICENSE) [![made with](https://img.shields.io/badge/TypeScript-strict-3178c6)]()
+截图是构建好的扩展填入虚构数据后渲染的，没有用到任何真实账号。
 
-[功能](#-功能) · [它如何保护你的账号](#%EF%B8%8F-它如何保护你的账号) · [安装](#-安装) · [对比 qmq](#-诚实对比) · [免责声明](#%EF%B8%8F-免责声明)
+## 为什么做这个
 
-</div>
+想把美签面谈往前挪，通常就是连着几天不停刷新预约页面，国内几个领馆尤其如此。我找到的脚本要么跑在云服务器上，要么要你把密码交给它，这两点都让我担心签证账号本身的安全。我想要的只是把枯燥的那部分交给程序：在我已经登录的浏览器里，隔几分钟、带随机抖动地看一眼，有值得要的日期就推到手机上。
 
----
+放号后几秒内就被抢走的号它抢不到，也不打算去抢，那需要代理池和反检测手段，而这些正是这个项目刻意不做的。
 
-## 这是什么
+## 功能
 
-VisaLark 监控 `ais.usvisa-info.com`（CGI Federal）上你<strong>自己</strong>的签证预约可约位，发现符合条件的位就<strong>立即推送</strong>到你的微信 / iOS / Telegram，并可选<strong>一键确认改期</strong>或在严格安全锁下<strong>自动改期</strong>。
+- **同时盯多个领馆**，按日期范围、星期几、时段过滤，报告其中最早的可约日期；也可以盯加急日历。
+- **推送渠道**：Bark（iOS）、Server 酱（微信）、Telegram、通用 webhook，以及浏览器自带通知。
+- **每个监控三种模式**：`notify`（默认）只提醒；`confirm` 在提醒里带一个按钮，点开确认页由你自己点改期；`auto` 自动改期，受下面的限制约束。
+- **出问题就退**：会话过期（401、跳转登录页）或遇到验证拦截（403、验证码）时暂停监控并提醒你；被限速（429、Cloudflare 1015）时长时间退避。任何情况下都不会尝试绕过。
 
-它<strong>诚实</strong>地告诉你它能做什么、不能做什么：
+### 代码里的安全限制
 
-- ✅ 帮你抓住本会错过的可约位 —— 尤其是不那么火爆的领区、任意更早日期、加急/紧急位。
-- ✅ 多领区同时盯，取"我能接受的城市里最早的位"。
-- ✅ 账号安全第一：复用你浏览器里已登录的会话，从不存密码、从不伪造指纹、从不绕验证码。
-- ❌ <strong>不</strong>承诺"秒级抢到"最火爆的位。那种 30 秒内消失的位，只有靠付费住宅代理 IP 集群才能赢 —— 那是 qmq 月烧十万、被迫收费、且会让账号被封、让仓库被下架的军备竞赛。<strong>我们不打这场仗。</strong>
+- 约 5 分钟 / 3 分钟 / 1.5 分钟三档轮询频率，带 ±40–50% 随机抖动，另有整个账号的每日请求上限（`packages/shared/src/safety.ts`）。
+- 本地 agent 启动时会查询出口 IP 所属网络，发现是云服务器/机房网络就拒绝启动，除非你手动覆盖（`apps/agent/src/ip-guard.ts`）。在家里登录、却从机房 IP 发请求，是典型的盗号特征，所以和网站打交道的部分应该跑在你登录的地方。
+- `auto` 模式只有同时满足这些条件才会改期：新日期至少提前 N 天、领馆在你的白名单里、前 N 次已经人工确认过、没超过每日上限、总开关没关；还有只评估不提交的演练模式（`packages/shared/src/interlocks.ts`）。网站返回结果不明确时记为失败，并提示你手动核对。
 
-> 为什么这样设计？见 [它如何保护你的账号](#%EF%B8%8F-它如何保护你的账号)。完整威胁模型在 [DESIGN.md](./DESIGN.md)。
+## 安装
 
-## ✨ 功能
+### 浏览器扩展（推荐）
 
-| 功能 | 说明 |
-|------|------|
-| 🎯 **多领区最早位** | 一个监控盯多个领区，自动取符合过滤条件的最早日期 |
-| 🔔 **一键确认** | 推送里带按钮，点一下用已登录的热会话 <1s 完成改期（人在回路，合规） |
-| 🤖 **自动改期（可选）** | 默认关闭。开启后受多重安全锁：只换更早的位、只去允许的领区、前 N 次需人工确认、每日上限、总开关、演练模式 |
-| 📅 **日期 / 星期 / 时段过滤** | 只在你能接受的窗口内提醒，杜绝噪音 |
-| 📡 **多渠道通知** | Bark(iOS) · Server酱(微信) · Telegram · Webhook(企业微信/Discord) · 浏览器原生。高优先级同时推所有渠道 |
-| 🚑 **加急/紧急位监控** | 监控 expedite 日历，紧急出行可用 |
-| 🔑 **会话健康检测** | 会话过期 / 被验证拦截 → 立即停手并提醒你重新同步，绝不硬闯 |
-| 📊 **可约历史 + 热力图** | 可选控制面板记录可约历史，算出"哪个时段最常放位"（放位规律学习） |
-
-## 🛡️ 它如何保护你的账号
-
-美签系统用<strong>按用户的行为 ML</strong> + Cloudflare + reCAPTCHA。最致命的封号信号<strong>不是</strong>轮询频率，而是 <strong>ASN / 不可能旅行 不匹配</strong>：
-
-> 你从中国住宅网络登录，结果同一个会话却从一个美国机房 IP 去刷 `/days/*.json` —— 这是教科书级的"账号被盗用/自动化"特征，会<strong>很快封掉你真实的签证账号</strong>（申诉慢，可能错过行程、白交签证费）。
-
-所以 VisaLark 采用<strong>两层架构</strong>：
-
-```
-┌─── 你的住宅网络（数据面：唯一接触签证网站的部分）────┐
-│  浏览器扩展（推荐，小白友好）  或  本地 Agent（极客 24x7）  │
-│  → 复用你真实的登录会话、住宅 IP、真浏览器指纹              │
-│  → 零密码存储、零验证码破解、零代理                         │
-└──────────────────────────────┬──────────────────────────┘
-                               │ (可选) 上报可约历史 / 中转通知
-                               ▼
-┌──────── 控制面板（不接触签证网站、零凭证）────────┐
-│  Vercel 落地页/文档/Demo   +   免费服务器(Oracle Free) 跑     │
-│  历史/热力图/通知中转                                          │
-└──────────────────────────────────────────────────────────┘
-```
-
-三条<strong>硬规矩</strong>（写进代码、有测试守护）：
-
-1. **数据面只在住宅 IP 跑** —— Agent 会检测出口 IP，识别到机房 ASN 默认拒绝启动。
-2. **零绕过代码** —— 不轮换代理、不伪造 TLS、不破解验证码。这既是<strong>法律护盾</strong>也是<strong>账号护盾</strong>。
-3. **失败即停手** —— 遇到验证拦截 / 401 / 1015，立即停止并提醒人工处理，绝不硬闯。
-
-## 📦 安装
-
-### 方式一：浏览器扩展（推荐，适合大多数人）
-
-1. 下载 [Releases](https://github.com/appleweiping/visa-lark/releases) 里的扩展包，或自行构建：
+1. 从 [Releases](https://github.com/appleweiping/visa-lark/releases) 下载 `visalark-extension-<版本>.zip`（由 CI 从打 tag 的提交构建）并解压，或者自己构建：
    ```bash
-   pnpm install && pnpm --filter @visa-lark/extension build
-   # dist 目录在 apps/extension/dist，Chrome/Edge → 扩展程序 → 加载已解压的扩展程序
+   pnpm install
+   pnpm build:packages
+   pnpm --filter @visa-lark/extension build      # 输出在 apps/extension/dist
    ```
-2. 在<strong>你自己的浏览器</strong>里正常登录 `ais.usvisa-info.com`，进入预约/改期页面。
-3. 点扩展图标 → "同步当前会话"（自动读取领区和行程号，无需手填）。
-4. 在设置页添加监控（领区、签证类型、日期范围、模式）和通知渠道。
-5. 完事。扩展会在后台用你的会话定时、带抖动地检查，发现位就推送。
+2. 打开 `chrome://extensions`（或 `edge://extensions`），开启开发者模式，点“加载已解压的扩展程序”，选中该文件夹。
+3. 自己登录 `ais.usvisa-info.com`，打开改期页面。
+4. 点 VisaLark 图标 →“同步当前会话”，它会从页面地址读出领区和行程号。
+5. 在设置里添加监控（领馆、签证类型、日期范围、模式）和至少一个推送渠道。
 
-### 方式二：本地 Agent（极客，24x7 不用一直开浏览器）
+### 本地 agent（不用一直开着浏览器）
+
+适合家里的电脑或树莓派，不要放在云服务器上：
 
 ```bash
-pnpm install && pnpm --filter @visa-lark/agent build
+pnpm install && pnpm build:packages && pnpm --filter @visa-lark/agent build
 cp apps/agent/visalark.config.example.json apps/agent/visalark.config.json
-# 编辑：粘贴你从已登录浏览器导出的 _yatri_session cookie + 领区 + 行程号 + 通知渠道
+# 填入从已登录浏览器导出的 _yatri_session cookie、领区、行程号和推送渠道
 node apps/agent/dist/index.js apps/agent/visalark.config.json
 ```
 
-> ⚠️ 在<strong>你家里的网络</strong>跑（家用电脑/树莓派），<strong>不要</strong>跑在云服务器上 —— 见上面的安全模型。Agent 会自动检测并拒绝在机房 IP 上启动。
+### 可选的控制面板
 
-### 可选：控制面板（历史/热力图/通知中转，零凭证）
+`apps/control-plane` 是一个 Fastify + SQLite 的小服务，记录看到过的可约日期（以及放号时段的热力图），也可以转发通知。它从不接触签证账号凭据。见 [apps/control-plane/README.md](apps/control-plane/README.md)。
 
-部署在免费的 [Oracle Cloud Always Free](https://www.oracle.com/cloud/free/) VM 上，落地页/文档部署在 Vercel。详见 [apps/control-plane/README](./apps/control-plane) 和 [DESIGN.md](./DESIGN.md)。
+## 开发
 
-## 🤝 诚实对比
-
-| | **VisaLark** | qmq.app | 开源 visa_rescheduler 系 |
-|--|--|--|--|
-| 开源 | ✅ Apache-2.0 | ❌ 闭源 | ✅ |
-| 价格 | 免费 | VIP 付费 | 免费 |
-| 账号安全 | ✅ 住宅 IP + 复用真会话 | ⚠️ 代理集群，可能限速/触发风控 | ⚠️ 多在机房跑，封号风险 |
-| 存你的密码 | ❌ 从不 | ? | ⚠️ 常存明文 |
-| 绕验证码/代理 | ❌ 零绕过 | ✅ 烧钱打军备竞赛 | ⚠️ 部分 |
-| 国内通知 | ✅ 微信/Bark | ⚠️ 仅 Telegram | ⚠️ 多为 Telegram/邮件 |
-| 抢最火爆的秒杀位 | ❌ 不承诺（诚实） | ✅ 主打（靠代理集群） | ❌ |
-| 多渠道 + 一键确认 + 安全锁 | ✅ | 部分 | ❌ |
-
-<strong>一句话</strong>：如果你要的是"任意更早的位 / 不那么挤的领区 / 加急位"，VisaLark 免费、开源、不会害你封号。如果你非要抢那种 30 秒消失的顶级秒杀位，没有任何负责任的自托管工具能赢那场仗 —— 那是付费运营方背着封号风险去打的。我们诚实地不骗你。
-
-## 🧩 架构
-
-```
-packages/shared              # 适配器无关的核心：类型 + 引擎 + 安全 + 联锁 + 通知接口（36 tests）
-packages/adapter-usvisa-info # 唯一接触 usvisa-info 的代码：端点/解析/改期/失败即停（16 tests）
-packages/notify              # Bark / Server酱 / Telegram / Webhook 渠道（5 tests）
-apps/extension               # MV3 浏览器扩展（主数据面，小白友好；15 tests）
-apps/agent                   # 本地 Node Agent（极客数据面，住宅 IP 守护；7 tests）
-apps/control-plane           # Fastify + better-sqlite3 控制面板（零凭证，22 tests）
-apps/web                     # Next.js 落地页/文档/Demo（部署 Vercel）
+```bash
+pnpm install
+pnpm build:packages                          # 各 app 依赖 packages 的构建产物
+pnpm -r --filter "!@visa-lark/web" test
 ```
 
-## ⚖️ 免责声明
+设计思路和威胁模型见 [DESIGN.md](DESIGN.md)（英文）。
 
-VisaLark 是<strong>教育与个人用途</strong>的开源工具，<strong>与 CGI Federal、美国国务院无任何关联</strong>。
+## 免责声明
 
-- 使用本工具访问签证系统<strong>可能违反其服务条款</strong>，自动化访问<strong>可能导致你的签证账号被限制或封禁</strong>。<strong>你自行承担全部账号与法律风险。</strong>
-- 本项目<strong>不含任何绕过验证码/反爬/代理</strong>的代码，也<strong>明确禁止</strong>多租户托管（不替任何人保管签证凭证）。
-- 本项目<strong>不</strong>提供托管服务，<strong>不</strong>承诺抢到任何预约。
-- 不构成法律意见。商用或托管前请咨询律师。
-- `auto` 自动改期是破坏性操作（会替换你现有的预约），默认关闭，请理解全部安全锁后再开启。
-- **改期/预约功能为实验性**：usvisa-info 的改期表单字段与确认流程未在真实账号上完整验证，结果不明确时本工具会标记为 `failed` 并要求你<strong>手动核对</strong>，绝不假装成功。监控/通知是核心、最可靠的部分；自动/一键改期请先用<strong>演练模式（dry-run）</strong>验证。
+VisaLark 是个人的非商业项目，与 CGI Federal 和美国国务院无关。它不提供托管服务，不保管任何人的凭据，也不能保证你约到号。本文内容不构成法律意见。
 
-按 [Apache-2.0](./LICENSE) 授权。No warranty.
-
----
-
-<div align="center">
-<sub>Built with 🐦 by the VisaLark contributors · 账号安全 > 抢位速度</sub>
-</div>
+许可证：[Apache-2.0](LICENSE)。

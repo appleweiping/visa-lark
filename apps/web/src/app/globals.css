@@ -8,7 +8,7 @@
  *   --accent   ← light lark tint (subtle hover surfaces — NOT feather)
  * The `feather` orange scale stays a named Tailwind color for warning
  * surfaces (honest-note, disclaimer); never wired to a semantic token,
- * so hover/ghost states stay calm. See docs/UI_OVERHAUL_SPEC.md.
+ * so hover/ghost states stay calm.
  */
 :root {
   --background: 0 0% 100%;

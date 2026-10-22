@@ -11,9 +11,9 @@ deploys to Vercel.
 
 ## Pages
 
-- **`/`** — landing. Honest positioning per DESIGN.md §10 (no "guaranteed grab" /
+- **`/`** — landing. Positioning per DESIGN.md §10 (no "guaranteed grab" /
   "秒级抢到"), the two-plane safety model with *why it protects your account*, a
-  feature grid, an honest comparison vs paid proxy grabbers, install CTAs, and a
+  feature grid, a comparison with paid proxy grabbers, install CTAs, and a
   prominent legal disclaimer.
 - **`/docs`** — getting started, the safety model, booking modes & auto-book
   interlocks, notifications, and self-hosting the optional control plane, plus an
