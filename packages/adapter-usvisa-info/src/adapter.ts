@@ -78,7 +78,7 @@ export class UsVisaInfoAdapter implements VisaAdapter {
 
   async getAvailableDays(monitor: Monitor, session: Session): Promise<DayResult> {
     const all: AvailableDate[] = [];
-    // Multi-consulate watch: "earliest across my acceptable cities" (DESIGN.md §9).
+    // Multi-consulate watch: "earliest across my acceptable cities".
     // Poll each facility sequentially — never burst — caller controls cadence.
     let requestCount = 0;
     for (const facilityId of monitor.facilityIds) {

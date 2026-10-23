@@ -1,7 +1,7 @@
 /**
  * SQLite persistence (better-sqlite3, prepared statements). Single-tenant.
  *
- * Tables (DESIGN.md §8 subset relevant to the control plane):
+ * Tables (see DESIGN.md §8):
  *   observation(id, monitor_id, facility_id, date, observed_at)
  *     — time-series of seen availability → heatmap / release-pattern model.
  *   event_log(id, kind, payload_json, created_at)

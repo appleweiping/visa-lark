@@ -1,159 +1,179 @@
-# VisaLark (签证云雀) — Design & Threat Model
+# VisaLark design notes
 
-> An open-source US visa appointment **monitor + assisted booking** tool.
-> It improves your odds of catching slots you would otherwise miss. It does **not** try to
-> win slots that vanish within seconds of release; that needs proxy pools and evasion,
-> which this project leaves out. See [Non-Goals](#10-non-goals-explicit-in-readme-too).
+Why VisaLark is built the way it is, and where each decision lives in the code. Section numbers
+are referenced from comments in the source.
 
----
+## 1. The risk that shapes everything
 
-## 1. The one finding that shapes everything
+The appointment site (`ais.usvisa-info.com`, run by CGI Federal) sits behind Cloudflare (challenge
+pages, rate limiting with error 1015) and uses reCAPTCHA on forms. How often you check matters, but
+the signal I worry about most is where the requests come from. If you log in from a home ISP and
+the same session then starts calling `/days/*.json` from a cloud datacenter, that looks like
+account takeover or automation, and the real visa account can be suspended. An appeal is slow and
+can cost you the travel window or the visa fee.
 
-The US visa system (`ais.usvisa-info.com`, CGI Federal) runs **per-customer behavioral ML**
-plus **Cloudflare** (Turnstile/challenge + rate-limit `Error 1015`) and **reCAPTCHA** on forms.
+So the code that talks to the visa site runs on your own home connection and reuses the session
+you logged into yourself. It does not run on a cloud server, and it does not try to be fast at any
+cost: no proxy pools, no evasion.
 
-The lethal signal is **not** poll cadence — it's **ASN / impossible-travel mismatch**:
-if a user logs in from a Chinese residential ISP and then the *same session* starts hitting
-`/days/*.json` from an Oracle/AWS datacenter ASN, that is a textbook account-takeover /
-automation signature → fast **suspension of the user's real visa account** (slow appeal,
-may miss travel window, may waste the MRV fee).
-
-**Therefore: the code that talks to usvisa-info MUST run on the user's own residential
-connection and reuse the user's own real browser session. It cannot run on a cloud server.**
-
-Speed at any cost is therefore not on the table. The project aims for account safety,
-transparency, watching several consulates at once, learning when slots tend to be released,
-and never holding credentials.
-
-## 2. Two-plane architecture
+## 2. Two planes
 
 ```
-┌───────────────────────── USER'S RESIDENTIAL NETWORK ──────────────────────────┐
-│  DATA PLANE  (touches usvisa-info, holds NO stored password, residential IP)   │
-│                                                                                │
-│   ┌────────────────────────┐         ┌────────────────────────────────────┐   │
-│   │ Browser Extension (MV3) │  OR     │ Local Agent (Node/Docker)          │   │
-│   │ — primary, non-tech     │         │ — power users, 24x7, headless box  │   │
-│   │ reuses the logged-in    │         │ cookie-only (user pastes/exports)  │   │
-│   │ session in the user's   │         │ runs on home PC / Raspberry Pi     │   │
-│   │ own Chrome/Edge tab      │         │                                    │   │
-│   └───────────┬────────────┘         └──────────────┬─────────────────────┘   │
-│               │  same Adapter + Notify + Scheduler + Safety core              │
-└───────────────┼─────────────────────────────────────┼─────────────────────────┘
-                │ (optional, opt-in) push availability history / events
-                ▼                                       ▼
-┌───────────────────────────── CONTROL PLANE ────────────────────────────────────┐
-│  Holds ZERO visa credentials. Never touches usvisa-info.                        │
-│                                                                                 │
-│   apps/web  (Next.js → Vercel)        apps/control-plane (Fastify + SQLite)     │
-│   landing / docs / live mock demo /   optional cross-device dashboard,          │
-│   dashboard SPA                       availability history + heatmap,           │
-│                                       notification relay (Oracle Free VM)       │
-└─────────────────────────────────────────────────────────────────────────────────┘
+ your home network                                   anywhere (optional)
+┌──────────────────────────────────────────┐        ┌─────────────────────────────────────┐
+│ DATA PLANE: talks to the visa site         │        │ CONTROL PLANE: never talks to it    │
+│                                            │        │                                     │
+│  apps/extension  (MV3, your own browser)   │  seen  │  apps/control-plane (Fastify+SQLite)│
+│        or                                  │ dates  │    history, heatmap, notify relay   │
+│  apps/agent      (Node, home PC / Pi)      │ ─────► │  apps/web (Next.js on Vercel)       │
+│                                            │        │    landing page, docs, mock demo    │
+│  same packages/shared core: scheduler,     │        │                                     │
+│  safety limits, auto-book checks           │        │  holds no visa credentials          │
+└──────────────────────────────────────────┘        └─────────────────────────────────────┘
 ```
 
-- **Data plane** is the only thing that ever sees usvisa-info or a session cookie. It runs
-  where the user logged in. Default = **no stored password** (cookie/session reuse only).
-- **Control plane** is pure convenience: a place to see history across devices and relay
-  notifications. It is optional, it holds no visa credentials, and it never polls the visa site.
-  This is where the "free server (Oracle Cloud Always Free)" + Vercel legitimately live.
+- The **data plane** is the only part that sees the visa site or a session cookie. The extension and
+  the agent share `packages/shared`, `packages/adapter-usvisa-info` and `packages/notify`, so the
+  safety logic has one implementation.
+- The **control plane** is a convenience. It stores dates you have seen and can relay notifications;
+  it never receives a visa credential and never polls the visa site.
 
-## 3. Hard design laws (non-negotiable, enforced in code + review)
+## 3. Safety rules in the code
 
-1. **Residential-IP only for the data plane.** No polling from cloud ASNs. The agent refuses
-   to run if it detects a known datacenter ASN, with a loud warning (best-effort heuristic).
-2. **Zero evasion code.** No proxy rotation, no stealth-patching, no CAPTCHA solvers, no
-   TLS-impersonation to defeat Cloudflare. This is simultaneously the **legal shield** and the
-   **account shield**. Reuse the real browser's own session/fingerprint instead of faking one.
-3. **Cookie-only by default.** No stored visa password. If auto-relogin is offered, it's an
-   advanced opt-in: key derived from a user passphrase via Argon2id, held **in memory only**,
-   never persisted; logs scrubbed of all credential/cookie material; telemetry OFF.
-4. **Fail-safe, never fail-through.** Any Turnstile / 401 / 403 / 1015 / challenge →
-   **STOP and notify the human**. Never retry-through a challenge. Never hammer a dead session.
-5. **Auto-book is OFF by default**, behind strict interlocks (§6). One-tap-confirm is the
-   headline. Reschedule is destructive — treat it like surgery.
-6. **Single-tenant only. Multi-tenant hosted credential storage is FORBIDDEN** (see Non-Goals).
-7. **Conservative, jittered polling** with backoff + daily cap. Cadence is *secondary* safety
-   (IP is primary), but still: randomized 90–300 s, exponential backoff, hours-long cooldown
-   on any challenge, global daily request cap.
+### 3.1 Residential network only
 
-## 4. Booking modes (user picks per-monitor)
+The extension runs in your browser, so its requests already come from where you logged in. The
+agent looks up the organisation behind its public IP at startup (`apps/agent/src/ip-guard.ts`,
+hints in `packages/shared/src/safety.ts`) and refuses to start on a known cloud/datacenter network
+unless `allowDatacenterIp` is set. It re-checks every hour and stops all monitors if the network
+changes to a datacenter one (for example a VPN). This is a heuristic based on the org name, not a
+guarantee.
 
-| Mode | What happens | Default | Risk |
-|------|--------------|---------|------|
-| `notify` | Slot found → push only. Human books manually. | — | Lowest |
-| `confirm` | Slot found → push w/ one-tap button → backend books in <1s using warm session. **Human-in-loop.** | **Yes (headline)** | Low |
-| `auto` | Unattended auto-reschedule when interlocks pass. | **OFF** | High |
+### 3.2 No evasion code
 
-## 5. Adapter interface (pluggable — usvisa-info is already deprecating toward mytravel.state.gov)
+No proxy rotation, no fingerprint spoofing, no CAPTCHA solving, no TLS impersonation. The adapter
+uses an injected transport: in the extension that is the browser's own `fetch` with its cookies, in
+the agent a plain `fetch` with the cookie and User-Agent you pasted.
+
+### 3.3 Cookie-only sessions
+
+No visa password is stored and nothing logs in for you. The extension never reads the cookie; the
+browser attaches it (`credentials: "include"`). The agent keeps the `_yatri_session` cookie you
+copied in its local config file, protected only by file permissions. When the session expires,
+both stop and ask you to sync again.
+
+### 3.4 Stop on challenges
+
+`packages/shared/src/safety.ts` turns each response into an outcome and a backoff state:
+
+| Response | What happens |
+|---|---|
+| 403 / 503, Cloudflare or Turnstile page, reCAPTCHA, "account restricted" text | 4 h cooldown and the monitor stops at once; you are alerted |
+| 401 / redirect to sign-in | "session expired" alert, 1 h pause |
+| 429 / Cloudflare 1015 | 1 h pause |
+| other errors | retried on the normal schedule |
+
+Three failures in a row of any kind stop the monitor until you resume it from the popup.
+The backoff state is persisted (`chrome.storage` in the extension, `stateFile` for the agent), so
+restarting the service worker or the process does not reset a cooldown. A reCAPTCHA on the
+reschedule POST is treated like a challenge.
+
+### 3.5 Polling limits
+
+| Profile | Interval | Daily request cap per monitor |
+|---|---|---|
+| `patient` (default) | 300 s ± 40% | 200 |
+| `balanced` | 180 s ± 45% | 350 |
+| `eager` | 90 s ± 50% | 600 |
+
+The cap counts HTTP requests, not cycles: a monitor watching three consulates makes three requests
+per cycle, plus one for times and one for a reschedule if it gets that far. On top of that there is
+an account-wide budget across all monitors (1.5 × the profile cap), and requests from the
+extension's confirm page count against it too.
+
+### 3.6 One user per deployment
+
+The control plane is single-user: one `DASHBOARD_TOKEN` protects every `/api` route except
+`/api/health`, and without a token those routes return 503. There is no hosted multi-user service,
+on purpose: it would mean holding other people's visa sessions.
+
+## 4. Booking modes
+
+| Mode | What happens | Default |
+|---|---|---|
+| `notify` | Alert only; you book yourself. | **yes** |
+| `confirm` | The alert carries a link to the extension's confirm page; one click reschedules with your logged-in session. Extension only: the agent has no confirm page and treats `confirm` as `notify`. | no |
+| `auto` | Reschedules without asking, behind the checks in §6. | no |
+
+Rescheduling replaces your existing appointment, and the flow has not been verified end to end
+against real accounts, so both `confirm` and `auto` are experimental.
+
+## 5. Adapter interface
+
+`packages/shared/src/adapter.ts` is the only interface that knows about a specific visa system:
 
 ```ts
 interface VisaAdapter {
-  id: string;                                   // 'usvisa-info'
+  id: string;
   validateSession(s: Session): Promise<SessionHealth>;
   getAvailableDays(m: Monitor, s: Session): Promise<DayResult>;   // /days/{facility}.json
-  getTimes(m: Monitor, date: string, s: Session): Promise<TimeResult>;
-  reschedule(b: BookingTarget, s: Session): Promise<BookingResult>; // destructive
+  getTimes(m: Monitor, date: string, facilityId: string, s: Session): Promise<TimeResult>;
+  reschedule(t: BookingTarget, s: Session): Promise<BookingResult>; // replaces the appointment
 }
 ```
-The scheduler, notifier, dashboard, and safety layer are **adapter-agnostic**. usvisa-info is
-treated as already-deprecating; budget for a `mytravel.state.gov` port. Invest minimally in
-usvisa-info DOM specifics.
 
-## 6. Auto-book interlocks (when `auto` is enabled)
+The scheduler, notifications and safety code don't depend on usvisa-info details, so if the
+appointment system is replaced, only the adapter has to be rewritten.
 
-- **Strictly-better-only**: book iff `newDate < currentDate` (configurable min-improvement, e.g.
-  ≥7 days earlier) **AND** facility ∈ user allowlist **AND** matches date/DoW/time filters.
-- **Never relinquish blind**: usvisa-info reschedule replaces the existing appointment; require
-  explicit confirmation for the first N bookings even in auto mode (`confirmFirstN`, default 1).
-- **Idempotency lock**: prevent double-submit / double-booking.
-- **Per-day booking cap** + **global kill-switch** + **dry-run mode**.
+## 6. Auto-book checks
 
-## 7. Notification channels (大陆-first, multi-channel, redundant)
+`packages/shared/src/interlocks.ts` refuses to book unless every check passes:
 
-Pluggable `NotifyChannel`. Ship: **Bark (iOS)**, **ServerChan/WeChat (Server酱)**, **Telegram**,
-**Email (SMTP)**. China-reliable path (Bark/ServerChan) is required, Telegram is the
-海外/技术 option. High-priority slot events fan out to all configured channels. Heartbeat so
-**silence ≠ "no slots"** (the user knows the monitor is alive).
+- the kill switch is off and fewer than `perDayCap` (default 2) bookings were made in the last 24 h;
+- the consulate is on your allow-list;
+- you have an existing appointment on record and the new date is earlier by at least
+  `minImprovementDays` (default 7); it never books a first appointment unattended;
+- the first `confirmFirstN` bookings (default 1) still go through you, even in `auto` mode;
+- in dry-run mode it only logs what it would have done.
 
-## 8. Data model (SQLite, single-tenant)
+If the site's response to the reschedule POST is unclear, the attempt is marked failed and you are
+asked to check by hand. In the extension, an in-flight lock and a short idempotency window stop a
+double-clicked alert from submitting the same booking twice.
 
-`account` (email, embassy_code, schedule_id, current_appt_date, current_facility_id — **password
-NOT stored by default**) · `session` (yatri_session_cookie_enc, authenticity_token, acquired_at,
-status) · `facility` (seed) · `monitor` (facility_ids[], visa_type, date_min/max, dow_filter,
-tod_filter, expedite, mode, poll_profile, enabled) · `slot_observation` (time-series → heatmap /
-release-pattern model) · `poll_log` (status, latency, next_backoff — ban-safety
-analytics + scheduler state) · `booking_attempt` (status, interlock results) · `notification` ·
-`settings` (channel configs, dashboard token, poll_global_min_interval).
+## 7. Notifications
 
-## 9. Feature plan
+Channels in `packages/notify`: Bark (iOS), ServerChan (WeChat), Telegram and a generic webhook
+(WeCom, Discord, Slack, your own relay); the extension adds browser notifications. Bark and
+ServerChan work from mainland China without a proxy; Telegram does not. Every alert goes to all
+configured channels, so one dead channel can't swallow it. The extension also sends a daily heartbeat while monitors are running, so silence means
+"no slots", not "the extension died".
 
-MVP: one-tap-confirm · **multi-consulate "earliest across my acceptable cities"** · notify breadth
-(Bark/ServerChan/TG/email) · date-range + DoW + time-of-day filters · session-health + re-login alert.
-v1: **release-pattern learning** ("best time to check" from your own poll history — raises hit-rate
-AND lowers total polls = aligns safety with effectiveness) · calendar heatmap + earliest-available
-trend · expedite/emergency watch (`expedite=true`) · interview-waiver/dropbox detection.
-Later: multi-account · group/family same-day · FIFA-2026 surge preset.
+The extension only has host permission for the visa site at install. The notification services and
+the control plane are optional host permissions that the options page asks for when you test or
+save them; without that access the worker's JSON POSTs would be blocked by CORS.
 
-## 10. Non-Goals (explicit, in README too)
+## 8. Control plane data
 
-- ❌ No hosted multi-tenant service holding users' visa credentials (credential honeypot,
-  mass-automation CFAA/ToS target, PIPL/GDPR controller liability).
-- ❌ No CAPTCHA solving, no proxy rotation, no anti-fingerprinting / stealth, no detection evasion.
-- ❌ No "guaranteed grab" / "秒级抢到" claims; the tool improves the odds, nothing more.
-- ❌ No cloud-IP polling of usvisa-info.
-- ❌ No DS-160 form filling (different system, scope creep).
+SQLite, single user (`apps/control-plane/src/db.ts`):
 
-## 11. Stack
+- `observation(monitor_id, facility_id, date, observed_at)`: every date a monitor reported. The
+  heatmap counts sightings per weekday × hour, and the first time each (consulate, date) pair was
+  seen is treated as the moment it was released. Ranking hours by releases gives the "best hour to
+  check".
+- `event_log(kind, payload_json, created_at)`: relay history, without channel secrets.
 
-TypeScript everywhere. pnpm monorepo. Extension = MV3 (vanilla TS + Vite). Local agent = Node.
-Control plane = Fastify + `better-sqlite3` (native addon; the build toolchain is handled in the Dockerfile). Web = Next.js (Vercel). Shared core (`packages/*`) is
-reused by both extension and agent so the safety/adapter/notify logic has **one** implementation.
+There is no table for sessions or passwords.
 
-## 12. Legal posture (protects the maintainer)
+## 9. Out of scope
 
-Monitor-first headline · educational/personal-use · "not affiliated with CGI Federal or the US
-Dept of State" · accept-all-account-ban-and-legal-risk · no warranty · permissive license w/
-liability disclaimer · **no evasion code in the repo** (the single strongest legal shield) ·
-no hosted service · no monetization framing as a "grabber". This is not legal advice; consult a
-lawyer before any monetization or hosted offering.
+- A hosted service that stores other people's visa credentials.
+- CAPTCHA solving, proxy rotation, fingerprint spoofing or any other detection evasion.
+- Polling the visa site from a cloud IP.
+- Filling in the DS-160 (a different system).
+- Promising that you will get a slot.
+
+## 10. Stack
+
+TypeScript throughout, pnpm workspace. Extension: Manifest V3, vanilla TypeScript, Vite with
+`@crxjs/vite-plugin`. Agent: Node 20+. Control plane: Fastify and `better-sqlite3` (the Dockerfile
+installs the build tools for the native addon). Web: Next.js 15 on Vercel. Tests: Vitest.

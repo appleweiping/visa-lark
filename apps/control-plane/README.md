@@ -33,8 +33,7 @@ browser page.
 
 Ranking hours by **releases** tells you which hour-of-day historically sees the
 most new slots. Checking then both raises your hit-rate **and** lets you poll
-less the rest of the day — which is exactly aligned with the account-safety laws
-in DESIGN.md §3 (fewer, smarter polls).
+less the rest of the day, in line with the polling limits in DESIGN.md §3.5.
 
 ## Auth & safety
 

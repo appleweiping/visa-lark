@@ -50,8 +50,8 @@ export function earliestAcceptable(
 }
 
 /**
- * Auto-book interlocks. See DESIGN.md §6. Reschedule on usvisa-info is
- * DESTRUCTIVE — it replaces the existing appointment — so we treat it as surgery.
+ * Auto-book interlocks. See DESIGN.md §6. A reschedule on usvisa-info replaces
+ * the existing appointment and cannot be undone, so every check has to pass.
  * This returns a decision; the caller must not book unless `allowed`.
  */
 export interface AutoBookConfig {

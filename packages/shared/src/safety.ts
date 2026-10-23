@@ -1,7 +1,7 @@
 import type { PollOutcome, SessionHealth } from "./types.js";
 
 /**
- * Safety core. Codifies DESIGN.md §3 hard laws.
+ * Safety core: the polling and backoff rules described in DESIGN.md §3.
  *
  * Primary safety is RESIDENTIAL IP (enforced where the data plane runs).
  * This module covers the *secondary* safety controls: cadence, jitter, backoff,

@@ -1,6 +1,6 @@
 /**
- * Notification channel abstraction. China-first + multi-channel + redundant.
- * See DESIGN.md §7. Ship Bark / ServerChan(WeChat) / Telegram / Email.
+ * Notification channel abstraction. See DESIGN.md §7. Implementations live in
+ * packages/notify: Bark, ServerChan (WeChat), Telegram and a generic webhook.
  */
 
 export type NotifyPriority = "low" | "normal" | "high";
