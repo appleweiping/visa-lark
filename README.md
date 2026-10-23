@@ -84,7 +84,7 @@ pnpm build:packages                          # the apps import the built package
 pnpm -r --filter "!@visa-lark/web" test      # vitest in every package and app
 ```
 
-CI runs the same steps, builds the extension and uploads the zip as an artifact; pushing a `v*` tag publishes that zip as a GitHub release.
+CI runs the same steps, builds the extension and uploads the zip as an artifact, and typechecks, lints and builds `apps/web`; pushing a `v*` tag publishes the extension zip as a GitHub release.
 
 ## Disclaimer
 

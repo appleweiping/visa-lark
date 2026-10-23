@@ -31,10 +31,27 @@ jobs:
           name: visalark-extension
           path: visalark-extension.zip
 
+  web:
+    # The landing page deployed at visa-lark.vercel.app.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @visa-lark/web typecheck
+      - run: pnpm --filter @visa-lark/web lint
+      - run: pnpm --filter @visa-lark/web build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+
   release:
-    # Runs only for version tags, and only after the tests and the build above passed.
+    # Runs only for version tags, and only after the tests and the builds above passed.
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: test
+    needs: [test, web]
     runs-on: ubuntu-latest
     permissions:
       contents: write
