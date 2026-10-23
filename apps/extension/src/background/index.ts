@@ -426,6 +426,18 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         sendResponse({ ok: true, result });
         break;
       }
+      case "testNotify": {
+        // Sent from the options page so you can check that each channel really delivers.
+        const state = await loadState();
+        const results = await dispatch(buildChannels(state.channels), {
+          title: "VisaLark 测试 / test",
+          body: "如果你收到这条，这个渠道可以用。If you got this, the channel works.",
+          priority: "normal",
+          kind: "heartbeat",
+        });
+        sendResponse({ ok: true, results });
+        break;
+      }
       case "resumeMonitor": {
         // Resume after a stop: clear the error/cooldown state but keep the
         // daily request history, then re-enable and rearm.

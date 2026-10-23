@@ -56,6 +56,11 @@
           同时显示浏览器原生通知（零配置，本地即时）
         </label>
         <button id="test-notify" class="btn">发送测试通知</button>
+        <p id="test-result" class="muted"></p>
+        <p class="hint">
+          第一次测试时浏览器会询问是否允许访问这些推送服务的域名。扩展只申请你配置的那几个，
+          不允许的话推送请求会被浏览器拦下。
+        </p>
       </section>
 
       <!-- AUTOBOOK -->
@@ -100,7 +105,7 @@
       <!-- ADVANCED -->
       <section class="panel" data-panel="advanced">
         <label class="field">
-          <span>可选：控制面板地址 Control-plane URL（用于历史/热力图/一键确认中转）</span>
+          <span>可选：控制面板地址 Control-plane URL（用于历史和热力图）</span>
           <input type="url" id="cp-url" placeholder="https://your-tunnel.example.com" />
           <small>留空则全部本地运行。控制面板<strong>不接触签证网站、不存凭证</strong>。</small>
         </label>

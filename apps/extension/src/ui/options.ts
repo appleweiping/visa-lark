@@ -2,6 +2,7 @@ import { loadState, saveState, mutate, type ExtState } from "../lib/storage.js";
 import { FACILITY_SEEDS } from "@visa-lark/adapter-usvisa-info";
 import type { Monitor, VisaType, BookingMode } from "@visa-lark/shared";
 import type { ChannelConfig } from "@visa-lark/notify";
+import { requiredOrigins } from "../lib/host-permissions.js";
 
 /** Options page controller. Vanilla TS, no framework (keeps the extension lean). */
 
@@ -294,15 +295,51 @@ $("#add-channel").addEventListener("click", async () => {
   await saveState(s);
 });
 
+/** Channel configs as currently shown in the form (read synchronously, see below). */
+function channelsFromDom(): ChannelConfig[] {
+  return [...document.querySelectorAll<HTMLElement>(".channel-row")].map((row) => {
+    const c: Record<string, string> = { type: row.dataset.type! };
+    row.querySelectorAll<HTMLInputElement>(".ch-field").forEach((inp) => {
+      if (inp.value) c[inp.dataset.key!] = inp.value;
+    });
+    return c as unknown as ChannelConfig;
+  });
+}
+
+/**
+ * Ask for host access to the given origins. Chrome only shows the prompt during
+ * a user gesture, so call this first thing in a click handler, before any await.
+ */
+function requestHostAccess(origins: string[]): Promise<boolean> {
+  if (origins.length === 0) return Promise.resolve(true);
+  return chrome.permissions.request({ origins });
+}
+
 $("#test-notify").addEventListener("click", async () => {
-  // Fire a local browser notification immediately as a smoke test.
+  const cpUrl = (document.getElementById("cp-url") as HTMLInputElement).value || undefined;
+  const access = requestHostAccess(requiredOrigins(channelsFromDom(), cpUrl));
+  const out = $("#test-result");
+  // Local browser notification first, so there is always some feedback.
   chrome.notifications.create(`test-${Date.now()}`, {
     type: "basic",
     iconUrl: chrome.runtime.getURL("icons/icon128.png"),
     title: "VisaLark 测试通知",
-    message: "如果你看到这条，浏览器通知工作正常。配置的渠道会在发现可约位时一同推送。",
+    message: "如果你看到这条，浏览器通知工作正常。下方会显示各个渠道的发送结果。",
     priority: 2,
   });
+  if (!(await access)) {
+    out.textContent = "没有获得这些渠道的访问权限，推送会被浏览器拦下。请再点一次并选择“允许”。";
+    return;
+  }
+  out.textContent = "发送中…";
+  const res = (await chrome.runtime.sendMessage({ type: "testNotify" })) as {
+    ok: boolean;
+    results?: { channel: string; delivered: boolean; error?: string }[];
+  };
+  const results = res?.results ?? [];
+  out.textContent = results.length
+    ? results.map((r) => `${r.channel}: ${r.delivered ? "已送达 ✓" : `失败 ✗ ${r.error ?? ""}`}`).join("  ·  ")
+    : "还没有配置推送渠道。";
 });
 
 // ---- Auto-book ----
@@ -352,6 +389,8 @@ async function renderAdvanced() {
 }
 
 $("#save-advanced").addEventListener("click", async () => {
+  const cpUrl = (document.getElementById("cp-url") as HTMLInputElement).value;
+  if (cpUrl) void requestHostAccess(requiredOrigins([], cpUrl));
   const s = await loadState();
   s.controlPlaneUrl = (document.getElementById("cp-url") as HTMLInputElement).value || undefined;
   s.controlPlaneToken = (document.getElementById("cp-token") as HTMLInputElement).value || undefined;

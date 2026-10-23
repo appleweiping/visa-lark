@@ -1,7 +1,7 @@
 import { defineManifest } from "@crxjs/vite-plugin";
 
 /**
- * MV3 manifest. The extension is the PRIMARY data plane (DESIGN.md §2).
+ * MV3 manifest. The extension is the main data plane (see DESIGN.md).
  *
  * Key safety property: it runs inside the user's own browser, so requests to
  * usvisa-info carry the user's REAL logged-in cookies, residential IP, and
@@ -9,7 +9,9 @@ import { defineManifest } from "@crxjs/vite-plugin";
  * never automate login, never inject evasion. We simply ride the session the
  * user established by logging in themselves.
  *
- * host_permissions is scoped to usvisa-info ONLY — least privilege.
+ * host_permissions covers only usvisa-info. The notification services and the
+ * optional control plane are optional host permissions: the options page asks
+ * for the specific origins you configured (see src/lib/host-permissions.ts).
  */
 export default defineManifest({
   manifest_version: 3,
@@ -33,4 +35,5 @@ export default defineManifest({
   },
   permissions: ["storage", "alarms", "notifications"],
   host_permissions: ["https://ais.usvisa-info.com/*"],
+  optional_host_permissions: ["https://*/*", "http://*/*"],
 });
