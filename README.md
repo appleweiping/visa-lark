@@ -90,4 +90,4 @@ CI runs the same steps, builds the extension and uploads the zip as an artifact;
 
 VisaLark is a personal, non-commercial project and is not affiliated with CGI Federal or the U.S. Department of State. It does not provide a hosted service, holds nobody's credentials and cannot promise you an appointment. Nothing here is legal advice.
 
-Licensed under [Apache-2.0](LICENSE).
+Copyright 2026 Weiping Yan. Licensed under [Apache-2.0](LICENSE); see also [NOTICE](NOTICE).

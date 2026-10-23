@@ -76,4 +76,4 @@ pnpm -r --filter "!@visa-lark/web" test
 
 VisaLark 是个人的非商业项目，与 CGI Federal 和美国国务院无关。它不提供托管服务，不保管任何人的凭据，也不能保证你约到号。本文内容不构成法律意见。
 
-许可证：[Apache-2.0](LICENSE)。
+Copyright 2026 Weiping Yan。许可证：[Apache-2.0](LICENSE)，另见 [NOTICE](NOTICE)。

@@ -4,6 +4,7 @@
   "private": true,
   "description": "Checks the US visa appointment calendar from your own logged-in browser and notifies you when an earlier date opens.",
   "license": "Apache-2.0",
+  "author": "Weiping Yan",
   "packageManager": "pnpm@9.15.0",
   "engines": {
     "node": ">=20"
