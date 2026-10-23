@@ -45,7 +45,7 @@ It will not win slots that disappear within seconds of being released, and it do
 2. Open `chrome://extensions` (or `edge://extensions`), enable Developer mode, click **Load unpacked** and choose the folder.
 3. Log in to `ais.usvisa-info.com` yourself and open the reschedule page.
 4. Click the VisaLark icon → **Sync session**. It reads the consulate and schedule id from the page URL.
-5. In Settings, add a monitor (consulates, visa type, date window, mode) and at least one notification channel.
+5. In Settings, add a monitor (consulates, visa type, date window, mode) and at least one notification channel, then click **发送测试通知 / send test**. The browser asks for access to the push services you configured; allow it, or the alerts cannot leave the browser. The page shows which channels delivered.
 
 ### Local agent (runs without a browser open)
 
