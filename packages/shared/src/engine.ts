@@ -23,7 +23,7 @@ import type {
   Session,
 } from "./types.js";
 
-/** Map a booking result status to a poll outcome for the fail-safe machine (HIGH-3).
+/** Map a booking result status to a poll outcome for the backoff state machine.
  * NOTE: only called AFTER an actual reschedule POST, so the status is always one
  * of confirmed/slot_gone/recaptcha_required/failed. dry_run/interlock_blocked are
  * produced in the no-POST branch and must NOT be routed here (they'd wrongly reset
@@ -68,7 +68,7 @@ export interface EngineDeps {
   now?: () => number;
   rng?: () => number;
   /**
-   * Optional GLOBAL (cross-monitor) daily request budget (MEDIUM-1). The
+   * Optional account-wide daily request budget across all monitors. The
    * per-monitor cap lives in BackoffState; this is the account-wide ceiling so
    * N monitors can't multiply total load N×. The host supplies the current
    * 24h request count and the ceiling; the engine refuses to poll when over.
@@ -91,7 +91,7 @@ export interface RunResult {
    * The exact number of HTTP requests this cycle issued to usvisa-info (days +
    * any times + any reschedule). The host uses THIS for the global request
    * budget — never reverse-engineer it from backoff.recentPolls.length, which
-   * self-prunes >24h stamps and would miscount (H1).
+   * drops stamps older than 24h and would miscount.
    */
   requestsIssued: number;
 }
@@ -158,7 +158,7 @@ export async function runMonitorOnce(
     };
   }
 
-  // 1b) GLOBAL cross-monitor request budget (MEDIUM-1). Even if this monitor's
+  // 1b) Account-wide request budget across all monitors. Even if this monitor's
   // own cap is fine, refuse to poll when the account-wide daily ceiling is hit.
   const budget = deps.getGlobalRequestBudget?.();
   if (budget && budget.used >= budget.cap) {
@@ -174,7 +174,7 @@ export async function runMonitorOnce(
   // 2) Poll available days.
   const day = await deps.adapter.getAvailableDays(monitor, session);
   const newBackoff = recordOutcome(backoff, day.outcome, now, day.requestCount);
-  // Track the EXACT request count this cycle issues for the global budget (H1).
+  // Count every request this cycle issues, for the global budget.
   let requestsIssued = day.requestCount;
 
   if (day.outcome !== "ok") {
@@ -244,7 +244,7 @@ export async function runMonitorOnce(
       session,
     );
     // Account for the extra request, and FAIL-SAFE on any non-ok times outcome
-    // (a challenge/ban/expiry on the times endpoint must STOP, not be swallowed — H1).
+    // (a challenge, ban or expiry on the times endpoint must stop the monitor too).
     workingBackoff = recordOutcome(workingBackoff, times.outcome, now, 1);
     requestsIssued += 1;
     if (times.outcome !== "ok") {
@@ -276,7 +276,7 @@ export async function runMonitorOnce(
         requestsIssued,
       };
     }
-    // Pick the earliest time that passes the time-of-day filter (M2).
+    // Pick the earliest time that passes the time-of-day filter.
     const time = times.times.find((t) => timeAllowed(t, monitor.todFilter));
     if (time) {
       const ctx: AutoBookContext = {
@@ -293,9 +293,9 @@ export async function runMonitorOnce(
           { facilityId: earliest.facilityId, date: earliest.date, time, monitorId: monitor.id },
           session,
         );
-        // HIGH-3: the reschedule POST is real traffic to usvisa-info — count it
-        // and feed its outcome to the fail-safe machine. A recaptcha/challenge on
-        // booking must STOP, never silently let the next cycle re-POST through it.
+        // The reschedule POST is a real request to the visa site: count it and
+        // feed its outcome to the backoff. A reCAPTCHA or challenge on booking
+        // must stop the monitor, or the next cycle would POST into it again.
         const bookingOutcome = bookingResultToOutcome(bookingResult.status);
         workingBackoff = recordOutcome(workingBackoff, bookingOutcome, now, 1);
         requestsIssued += 1;
@@ -333,7 +333,7 @@ export async function runMonitorOnce(
       }
     } else {
       // Times came back ok but none usable (emptied by a race, or all filtered out by
-      // TOD) → don't silently drop a found date; notify the human (H1).
+      // time-of-day): don't drop a found date silently, tell the user.
       await dispatch(
         deps.channels,
         slotMessage(monitor, earliest.date, earliest.facilityId, undefined, confirmUrl),

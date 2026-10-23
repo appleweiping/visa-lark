@@ -67,7 +67,7 @@ export function initBackoff(): BackoffState {
 /**
  * Clear the error/cooldown state while PRESERVING the daily-request history.
  * Called when the user re-syncs their session after a challenge/expiry stop
- * (M4) — re-syncing should let monitoring resume, but it must not reset the
+ * Re-syncing should let monitoring resume, but it must not reset the
  * daily request cap (that protects the account regardless of session changes).
  */
 export function resetBackoff(state: BackoffState): BackoffState {
@@ -135,7 +135,7 @@ export function healthToOutcome(h: SessionHealth): PollOutcome {
  * `requestCount` is the number of actual HTTP requests the cycle issued (a
  * multi-facility monitor makes one request per facility, plus times/reschedule
  * calls). The daily cap counts REQUESTS, not cycles, so it bounds the real load
- * on usvisa-info (H2). Defaults to 1 for callers that issue a single request.
+ * on the visa site. Defaults to 1 for callers that issue a single request.
  */
 export function recordOutcome(
   state: BackoffState,

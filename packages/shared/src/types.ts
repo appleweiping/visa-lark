@@ -131,7 +131,7 @@ export const DayResult = z.object({
   dates: z.array(AvailableDate).default([]),
   /** earliest acceptable date after filters, if any. */
   earliest: AvailableDate.optional(),
-  /** Number of HTTP requests this poll cycle issued (for the daily cap, H2). */
+  /** Number of HTTP requests this poll cycle issued (for the daily cap). */
   requestCount: z.number().int().default(1),
   raw: z.unknown().optional(),
 });

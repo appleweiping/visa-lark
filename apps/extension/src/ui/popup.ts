@@ -52,7 +52,7 @@ async function render() {
       <span class="mi-state ${m.enabled ? "on" : "off"}">${m.enabled ? "运行中" : "已停"}</span>
     `;
     if (!m.enabled) {
-      // M4: stopped monitors (after a challenge/expiry) need a one-click recovery
+      // A monitor stopped by a challenge or an expired session needs a one-click recovery
       // that resets the error/cooldown state and re-arms — re-syncing alone won't.
       const resume = document.createElement("button");
       resume.className = "link";

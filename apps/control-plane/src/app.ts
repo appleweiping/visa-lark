@@ -94,7 +94,7 @@ export function buildApp(opts: BuildOptions): FastifyInstance {
       if (channels.length === 0) {
         return reply.code(400).send({ error: "no_channels" });
       }
-      // SSRF guard (M6): webhook channels POST to a caller-supplied URL. On a
+      // SSRF guard: webhook channels POST to a caller-supplied URL. On a
       // cloud VM that could hit the metadata endpoint or internal services.
       // Reject webhook targets pointing at private / link-local / loopback hosts.
       for (const c of channels) {
@@ -192,14 +192,14 @@ export function buildApp(opts: BuildOptions): FastifyInstance {
 function timingSafeEqual(a: string, b: string): boolean {
   const ab = Buffer.from(a);
   const bb = Buffer.from(b);
-  // Hash both to a fixed length so the compare itself never leaks length (L6).
+  // Hash both to a fixed length so the compare itself never leaks length.
   const ah = createHash("sha256").update(ab).digest();
   const bh = createHash("sha256").update(bb).digest();
   return nodeTimingSafeEqual(ah, bh) && a.length === b.length;
 }
 
 /**
- * SSRF guard for caller-supplied webhook URLs (M6). Allows only http(s) to a
+ * SSRF guard for caller-supplied webhook URLs. Allows only http(s) to a
  * host that is not an obvious private / link-local / loopback / metadata target.
  * This is a hostname/literal-IP heuristic; it does not resolve DNS (a determined
  * attacker could use a rebinding domain — documented as a residual risk).
@@ -217,7 +217,7 @@ function isSafePublicUrl(raw: string): boolean {
   if (host === "169.254.169.254" || host === "metadata.google.internal") return false;
   // IPv4-mapped / -embedded IPv6 (e.g. ::ffff:169.254.169.254, ::ffff:a9fe:a9fe)
   // would otherwise slip past the IPv4 range checks below and still connect to
-  // the metadata endpoint (MEDIUM-4). Reject any mapped/compat form outright.
+  // the metadata endpoint. Reject any mapped/compat form outright.
   if (host.includes("::ffff:") || host.includes("::")) {
     // ::1, ::ffff:..., and other compressed IPv6 forms — only allow if it's a
     // clearly-global IPv6 (starts with 2 or 3); everything else is refused.

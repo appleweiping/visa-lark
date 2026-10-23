@@ -29,7 +29,7 @@ export interface ExtState {
   backoff: Record<string, BackoffState>;
   /** Per-monitor bookkeeping for interlocks. */
   bookkeeping: Record<string, { bookingsMade: number; bookingTimes: number[] }>;
-  /** Global (cross-monitor) request timestamps for the account-wide daily cap (MEDIUM-1). */
+  /** Request timestamps across all monitors, for the account-wide daily cap. */
   globalPolls: number[];
   logs: PollLogEntry[];
   /** Optional control-plane URL to relay observations/notifications. */
@@ -94,7 +94,7 @@ export async function appendLog(entry: PollLogEntry): Promise<void> {
 }
 
 /**
- * Serialized read-modify-write (H3). MV3 alarms for different monitors fire
+ * Serialized read-modify-write. MV3 alarms for different monitors fire
  * independently and their handlers interleave; because each writes the WHOLE
  * state blob, a naive load→modify→save loses concurrent updates (dropped
  * cooldowns → resumed hammering; dropped bookkeeping → interlock bypass /

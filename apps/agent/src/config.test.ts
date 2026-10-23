@@ -60,7 +60,7 @@ describe("agent config", () => {
     expect(cfg.autoBook.confirmFirstN).toBe(1);
   });
 
-  it("downgrades confirm mode to notify on the agent (HIGH-2 — no dead button)", () => {
+  it("downgrades confirm mode to notify on the agent so alerts never carry a dead button", () => {
     const p = tmpConfig({
       session: { cookie: "c", embassyCode: "en-cn", scheduleId: "1" },
       monitors: [

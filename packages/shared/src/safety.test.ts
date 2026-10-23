@@ -95,7 +95,7 @@ describe("fail-safe state machine", () => {
     expect(action.kind).toBe("poll");
   });
 
-  it("resetBackoff clears the cooldown/errors but PRESERVES the daily request history (M4)", () => {
+  it("resetBackoff clears the cooldown/errors but PRESERVES the daily request history", () => {
     const now = 7_000_000;
     let s = initBackoff();
     s = recordOutcome(s, "ok", now, 5); // 5 requests today
@@ -109,7 +109,7 @@ describe("fail-safe state machine", () => {
     expect(decideNextAction(reset, POLL_PROFILES.patient!, now + 2).kind).toBe("poll");
   });
 
-  it("records requestCount stamps for the daily cap (H2)", () => {
+  it("records requestCount stamps for the daily cap", () => {
     const now = 8_000_000;
     const s = recordOutcome(initBackoff(), "empty", now, 4);
     expect(s.recentPolls).toHaveLength(4);

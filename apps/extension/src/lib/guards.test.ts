@@ -12,7 +12,7 @@ import { initBackoff, recordOutcome, POLL_PROFILES } from "@visa-lark/shared";
 
 const NOW = 1_000_000_000;
 
-describe("global request budget accounting (H1/H2/MEDIUM-1)", () => {
+describe("global request budget accounting", () => {
   it("globalCap is 1.5x the profile daily cap", () => {
     expect(globalCap("patient")).toBe(Math.round(POLL_PROFILES.patient!.dailyCap * 1.5));
   });
@@ -35,7 +35,7 @@ describe("global request budget accounting (H1/H2/MEDIUM-1)", () => {
   });
 });
 
-describe("checkConfirmGuard (MEDIUM-2)", () => {
+describe("checkConfirmGuard", () => {
   it("allows when healthy and under budget", () => {
     expect(checkConfirmGuard(initBackoff(), "patient", [], NOW).ok).toBe(true);
   });
@@ -56,7 +56,7 @@ describe("checkConfirmGuard (MEDIUM-2)", () => {
   });
 });
 
-describe("idempotency lock (H3)", () => {
+describe("idempotency lock", () => {
   it("flags a duplicate booking within the window", () => {
     const recent = new Map<string, number>();
     const key = bookingKey("m1", "95", "2026-07-01", "09:00");

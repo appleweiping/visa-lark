@@ -66,11 +66,12 @@ function channelsFor(state: ExtState) {
     : configured;
 }
 
-/** Monitors currently mid-tick — prevents a `runNow` and a scheduled alarm
- * from polling the same monitor concurrently (HIGH-1: avoids burst + double-book). */
+/** Monitors currently mid-tick. Stops a `runNow` and a scheduled alarm from
+ * polling the same monitor at the same time, which would double the request
+ * burst and could submit the same booking twice. */
 const inFlight = new Set<string>();
 
-/** Recently-submitted booking targets, for the idempotency lock (H3). A second
+/** Recently submitted booking targets, for the idempotency lock. A second
  * confirmBook for the same target within the window is refused (key/window logic
  * in lib/guards.ts), so a double-clicked notification / two confirm tabs can't
  * fire two destructive reschedule POSTs. */
@@ -108,8 +109,9 @@ async function tickInner(monitorId: string): Promise<void> {
   const backoff = state.backoff[monitorId] ?? initBackoff();
   const bk = state.bookkeeping[monitorId] ?? { bookingsMade: 0, bookingTimes: [] };
   const dayAgo = Date.now() - DAY_MS;
-  // Track DELTAS so we apply them to FRESH state inside the mutate, instead of
-  // clobbering with values derived from a possibly-stale base (HIGH-1).
+  // Track deltas and apply them to fresh state inside `mutate`. Writing values
+  // computed from the state loaded at the start of the tick would overwrite
+  // anything another alarm or the confirm page changed in the meantime.
   let bookingDelta = 0;
   const newBookingTimes: number[] = [];
 
@@ -120,7 +122,7 @@ async function tickInner(monitorId: string): Promise<void> {
       channels: channelsFor(state),
       // The one-tap confirm link points at an EXTENSION page (not the control
       // plane). Booking must happen in the data plane that holds the warm
-      // browser session — the control plane has no session and cannot book (C1).
+      // browser session; the control plane has no session and cannot book.
       confirmUrlBase: chrome.runtime.getURL("confirm.html"),
       getCurrentAppointment: () => state.currentAppointment,
       getAutoBookContext: () => ({
@@ -142,9 +144,9 @@ async function tickInner(monitorId: string): Promise<void> {
       },
     });
   } catch (e) {
-    // L4: a thrown error must still escalate backoff (toward the STOP threshold),
-    // not loop a flat 10-min retry forever. Record a network_error and honor the
-    // resulting cooldown for the next-run delay.
+    // A thrown error still has to escalate the backoff toward the stop
+    // threshold; otherwise the monitor would retry every 10 minutes forever.
+    // Record it as a network_error and use the resulting cooldown.
     let nextBo = backoff;
     await mutate(async (fresh) => {
       const cur = fresh.backoff[monitorId] ?? initBackoff();
@@ -168,12 +170,12 @@ async function tickInner(monitorId: string): Promise<void> {
     return;
   }
 
-  // The engine reports the EXACT number of requests it issued (H1) — use it
-  // directly rather than diffing a self-pruning array.
+  // The engine reports how many requests it actually issued. Use that instead
+  // of diffing recentPolls, which drops entries older than 24h and miscounts.
   const requestsThisCycle = result.requestsIssued;
   const stopped = result.next.kind === "stopped";
 
-  // Apply ALL state changes atomically against FRESH state using deltas (HIGH-1).
+  // Apply every state change in one `mutate` against fresh state, using the deltas.
   await mutate(async (fresh) => {
     fresh.backoff[monitorId] = result.backoff;
     const fbk = fresh.bookkeeping[monitorId] ?? { bookingsMade: 0, bookingTimes: [] };
@@ -224,15 +226,16 @@ async function relayObservation(
 }
 
 /**
- * Guard for the human-driven confirm path (MEDIUM-2). Thin wrapper over the
- * pure, tested helper in lib/guards.ts.
+ * Guard for the confirm page. Requests made after a human click still count
+ * against the cooldown and the daily budget. Thin wrapper over the tested
+ * helper in lib/guards.ts.
  */
 function checkConfirmGuard(state: ExtState, monitorId: string): { ok: true } | { ok: false; reason: string } {
   const profile = state.monitors.find((m) => m.id === monitorId)?.pollProfile ?? DEFAULT_PROFILE;
   return guardConfirm(state.backoff[monitorId] as never, profile, state.globalPolls, Date.now());
 }
 
-/** Record one confirm-path request into the monitor backoff + global budget (MEDIUM-2). */
+/** Record one confirm-page request in the monitor's backoff and the global budget. */
 async function recordConfirmRequest(monitorId: string, outcome: PollOutcome): Promise<void> {
   const now = Date.now();
   await mutate(async (s) => {
@@ -255,9 +258,10 @@ async function rearmAll(): Promise<void> {
       await chrome.alarms.create(alarmName(m.id), { delayInMinutes: jitter });
     }
   }
-  // Heartbeat (M3): a daily low-priority "still alive" ping. Only (re)create it
-  // if it doesn't already exist, so frequent rearmAll calls (every settings edit)
-  // don't keep pushing the 24h delay out and prevent it from ever firing (MEDIUM-3).
+  // Heartbeat: a daily low-priority "still alive" ping, so silence means "no
+  // slots" and not "the extension died". Only create the alarm if it is missing:
+  // rearmAll runs on every settings edit, and recreating it each time would keep
+  // pushing the 24h delay out so it never fires.
   const existingHb = await chrome.alarms.get(HEARTBEAT_ALARM);
   if (!existingHb) {
     await chrome.alarms.create(HEARTBEAT_ALARM, { periodInMinutes: 24 * 60, delayInMinutes: 24 * 60 });
@@ -335,9 +339,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           sendResponse({ ok: false, error: "no session context" });
           break;
         }
-        // MEDIUM-2: the confirm path is real traffic — honor the monitor's hard
-        // cooldown (challenge/ban) and the global daily budget rather than
-        // hammering usvisa-info outside the safety system.
+        // The confirm page sends real requests to the visa site, so it honors
+        // the monitor's cooldown (after a challenge or ban) and the global daily
+        // budget like the scheduled polls do.
         const guard = checkConfirmGuard(state, msg.monitorId);
         if (!guard.ok) {
           sendResponse({ ok: false, error: guard.reason });
@@ -346,7 +350,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         const monitor =
           state.monitors.find((m) => m.id === msg.monitorId) ??
           // If the monitor was deleted, fall back to the expedite flag carried
-          // in the confirm link (L5) so we query the correct calendar.
+          // in the confirm link so we query the correct calendar.
           ({ expedite: !!msg.expedite } as never);
         const times = await adapter.getTimes(monitor, msg.date, msg.facilityId, session);
         await recordConfirmRequest(msg.monitorId, times.outcome);
@@ -354,10 +358,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         break;
       }
       case "confirmBook": {
-        // The HUMAN clicked "confirm" — book using the warm browser session (C1).
-        // This is human-in-the-loop, so it does NOT run the unattended auto-book
-        // interlocks; the user explicitly chose this slot. We still fail safe and
-        // still honor the kill switch + hard cooldown + global budget (MEDIUM-2).
+        // The user clicked "confirm": book with the logged-in browser session.
+        // A person picked this slot, so the unattended auto-book checks do not
+        // apply, but the kill switch, the cooldown and the global budget still do.
         const state = await loadState();
         const session = buildSession(state);
         if (!session) {
@@ -373,7 +376,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           sendResponse({ ok: false, error: guard.reason });
           break;
         }
-        // Idempotency lock (H3): refuse a duplicate booking for the same target
+        // Idempotency lock: refuse a duplicate booking for the same target
         // within the window, and block a concurrent auto-tick for this monitor.
         const key = bookingKey(msg.monitorId, msg.facilityId, msg.date, msg.time);
         if (isDuplicateBooking(recentBookings, key, Date.now()) || inFlight.has(msg.monitorId)) {
@@ -424,8 +427,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         break;
       }
       case "resumeMonitor": {
-        // Re-sync recovery (M4): clear the error/cooldown state but keep the
-        // daily request history, then re-enable + rearm.
+        // Resume after a stop: clear the error/cooldown state but keep the
+        // daily request history, then re-enable and rearm.
         await mutate(async (state) => {
           const bo = state.backoff[msg.monitorId];
           if (bo) state.backoff[msg.monitorId] = resetBackoff(bo);

@@ -9,7 +9,7 @@ import {
 /**
  * Pure host-side helpers extracted from the background service worker so the
  * money-path logic (confirm guard, global budget, idempotency) is unit-testable
- * without a `chrome` mock (M4). The worker is a thin wrapper over these.
+ * without a `chrome` mock. The worker is a thin wrapper over these.
  */
 
 export const DAY_MS = 24 * 60 * 60_000;
@@ -38,7 +38,7 @@ export type ConfirmGuard = { ok: true } | { ok: false; reason: string };
 /**
  * Decide whether a human-initiated confirm action may touch usvisa-info.
  * Honors the monitor's hard cooldown (challenge/ban) and the global daily
- * budget even though a human triggered it (MEDIUM-2).
+ * budget even though a person triggered it: the request still reaches the site.
  */
 export function checkConfirmGuard(
   backoff: BackoffState | undefined,
@@ -59,8 +59,9 @@ export function checkConfirmGuard(
 }
 
 /**
- * Idempotency check for a destructive booking (H3): refuse a duplicate target
- * within the window. Returns whether the booking may proceed.
+ * Idempotency check for a booking. Rescheduling replaces the existing
+ * appointment, so refuse a duplicate target within the window. Returns whether
+ * the booking may proceed.
  */
 export function bookingKey(monitorId: string, facilityId: string, date: string, time: string): string {
   return `${monitorId}|${facilityId}|${date}|${time}`;

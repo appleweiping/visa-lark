@@ -196,7 +196,7 @@ describe("control-plane API", () => {
       expect(res.json().error).toBe("no_channels");
     });
 
-    it("blocks SSRF: webhook pointing at the cloud metadata endpoint (M6)", async () => {
+    it("blocks SSRF: webhook pointing at the cloud metadata endpoint", async () => {
       const res = await app.inject({
         method: "POST",
         url: "/api/notify",
@@ -211,7 +211,7 @@ describe("control-plane API", () => {
       expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it("blocks SSRF: webhook to a private 192.168 / localhost target (M6)", async () => {
+    it("blocks SSRF: webhook to a private 192.168 / localhost target", async () => {
       for (const url of ["http://192.168.1.10/x", "http://localhost:9200/", "http://10.0.0.5/"]) {
         const res = await app.inject({
           method: "POST",
@@ -223,7 +223,7 @@ describe("control-plane API", () => {
       }
     });
 
-    it("blocks SSRF: IPv4-mapped IPv6 to metadata endpoint (MEDIUM-4)", async () => {
+    it("blocks SSRF: IPv4-mapped IPv6 to metadata endpoint", async () => {
       for (const url of [
         "http://[::ffff:169.254.169.254]/latest/meta-data/",
         "http://[::ffff:a9fe:a9fe]/",

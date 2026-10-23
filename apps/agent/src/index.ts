@@ -74,7 +74,7 @@ async function main() {
       adapter,
       channels,
       // The agent has no local confirm UI and the control plane can't book
-      // (zero credentials), so a confirm deep link would be dead (HIGH-2).
+      // (it holds no credentials), so a confirm deep link would lead nowhere.
       // Agent only emits notify/auto — `confirm` is downgraded to notify
       // (see config normalization). No confirmUrlBase here.
       getCurrentAppointment: () => cfg.currentAppointment,
@@ -82,8 +82,8 @@ async function main() {
         bookingsMade: bk.bookingsMade,
         bookingsToday: bk.bookingTimes.filter((t) => t > dayAgo()).length,
       }),
-      // Account-wide daily request budget across ALL monitors (H2 — was
-      // extension-only). The 24x7 agent most needs this.
+      // Account-wide daily request budget across all monitors. An agent that
+      // runs around the clock needs this more than the extension does.
       getGlobalRequestBudget: () => ({
         used: state.globalPolls.filter((t) => t > dayAgo()).length,
         cap: Math.round(profile.dailyCap * 1.5),
@@ -124,7 +124,7 @@ async function main() {
     setTimeout(() => void tick(m), jitter);
   }
 
-  // Periodic IP re-check (L3): a 24x7 agent can have its network change (VPN
+  // Periodic IP re-check: a long-running agent can have its network change (VPN
   // toggled on, routed through a datacenter). Re-verify hourly; if it drifts to
   // a datacenter ASN, stop all monitors to protect the account.
   const ipRecheck = setInterval(async () => {

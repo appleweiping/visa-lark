@@ -92,7 +92,7 @@ export class UsVisaInfoAdapter implements VisaAdapter {
       const outcome = classifyResponse(this.toClassify(res));
       // FAIL-SAFE: on any non-ok outcome, stop immediately and report it.
       // We report the dates found so far so a real slot from an earlier facility
-      // isn't silently lost when a later facility hits a wall (L8).
+      // isn't silently lost when a later facility hits a wall.
       if (outcome !== "ok") {
         const earliestSoFar = all.length
           ? [...all].sort((a, b) => a.date.localeCompare(b.date))[0]

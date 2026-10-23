@@ -7,7 +7,7 @@ import manifest from "./manifest.config.js";
 const here = dirname(fileURLToPath(import.meta.url));
 
 describe("manifest", () => {
-  it("does not set default_locale without a _locales subtree (C1 regression guard)", () => {
+  it("does not set default_locale without a _locales subtree (Chrome refuses to load the extension otherwise)", () => {
     // Chrome refuses to LOAD an extension that declares default_locale but has
     // no _locales/<locale>/messages.json. The build looks clean; only Chrome
     // load fails. So assert the invariant here.

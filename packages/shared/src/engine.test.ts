@@ -199,7 +199,7 @@ describe("runMonitorOnce — auto mode + interlocks", () => {
     expect(cap.sent.some((x) => x.kind === "slot_found")).toBe(true);
   });
 
-  it("STOPS in auto mode when the TIMES endpoint hits a challenge (H1 — no swallow)", async () => {
+  it("STOPS in auto mode when the TIMES endpoint hits a challenge instead of swallowing it", async () => {
     const m = { ...monitor, mode: "auto" as const };
     const adapter = fakeAdapter(
       {
@@ -225,7 +225,7 @@ describe("runMonitorOnce — auto mode + interlocks", () => {
     expect(rescheduleSpy).not.toHaveBeenCalled();
   });
 
-  it("falls back to a slot_found notification when times come back empty (H1)", async () => {
+  it("falls back to a slot_found notification when times come back empty", async () => {
     const m = { ...monitor, mode: "auto" as const };
     const adapter = fakeAdapter(
       {
@@ -251,7 +251,7 @@ describe("runMonitorOnce — auto mode + interlocks", () => {
   });
 });
 
-describe("runMonitorOnce — daily request accounting (H2)", () => {
+describe("runMonitorOnce — daily request accounting", () => {
   it("records one poll per facility request, not one per cycle", async () => {
     const m = { ...monitor, facilityIds: ["95", "98", "99"] };
     const adapter = fakeAdapter({
@@ -271,7 +271,7 @@ describe("runMonitorOnce — daily request accounting (H2)", () => {
   });
 });
 
-describe("runMonitorOnce — reschedule fail-safe (HIGH-3)", () => {
+describe("runMonitorOnce — challenge on the reschedule POST", () => {
   it("STOPS when the reschedule POST returns recaptcha_required (never retry-through)", async () => {
     const m = { ...monitor, mode: "auto" as const };
     const adapter: VisaAdapter = {
@@ -301,7 +301,7 @@ describe("runMonitorOnce — reschedule fail-safe (HIGH-3)", () => {
   });
 });
 
-describe("runMonitorOnce — global request budget (MEDIUM-1)", () => {
+describe("runMonitorOnce — global request budget", () => {
   it("refuses to poll when the global daily budget is exhausted", async () => {
     const adapter = fakeAdapter({
       outcome: "ok",

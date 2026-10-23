@@ -111,11 +111,11 @@ function readEditor(card: HTMLElement, existingId?: string): Monitor | { error: 
     .map((x) => x.trim())
     .filter(Boolean);
   const facilityIds = [...new Set([...checked, ...custom])];
-  // M5: require an explicit facility selection — never silently fall back to Beijing.
+  // Require an explicit facility selection; never silently fall back to Beijing.
   if (facilityIds.length === 0) {
     return { error: "请至少选择一个领区，或填写自定义 facility id。" };
   }
-  // M1: all facilities in one monitor must belong to the SAME embassy locale —
+  // All facilities in one monitor must belong to the same embassy locale:
   // usvisa-info schedule_id + locale are per-account-per-country, so a single
   // synced session can only query one country's facilities.
   const locales = new Set(
@@ -321,7 +321,7 @@ async function renderAutoBook() {
 $("#save-autobook").addEventListener("click", async () => {
   const date = (document.getElementById("cur-date") as HTMLInputElement).value;
   const cfnRaw = (document.getElementById("confirm-first-n") as HTMLInputElement).value;
-  // L1: a blank confirm-first-N must NOT silently disable the safety interlock.
+  // A blank confirm-first-N must not silently turn the check off.
   // Blank → default 1; an explicit 0 is honored but clamped non-negative.
   const confirmFirstN = cfnRaw.trim() === "" ? 1 : Math.max(0, Number(cfnRaw) || 0);
   await mutate(async (s) => {

@@ -45,7 +45,7 @@ export function loadConfig(path: string): AgentConfig {
     throw new Error("Config.session must include cookie, embassyCode, scheduleId.");
   }
   const monitors = (raw.monitors ?? []).map((m) => Monitor.parse(m)).map((m) => {
-    // HIGH-2: the agent can't service a one-tap confirm link (no local UI; the
+    // The agent can't serve a one-tap confirm link (no local UI, and the
     // control plane holds no session). Downgrade `confirm` → `notify` so users
     // never get a dead button. `auto` (unattended) still works on the agent.
     if (m.mode === "confirm") {
@@ -83,7 +83,7 @@ export function toSession(cfg: AgentConfig): Session {
 export interface AgentState {
   backoff: Record<string, unknown>;
   bookkeeping: Record<string, { bookingsMade: number; bookingTimes: number[] }>;
-  /** Global cross-monitor request timestamps for the account-wide daily cap (H2). */
+  /** Request timestamps across all monitors, for the account-wide daily cap. */
   globalPolls: number[];
 }
 
