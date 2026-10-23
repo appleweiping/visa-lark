@@ -213,7 +213,7 @@ export function InstallSection() {
           </a>
         </Button>
         <Button asChild variant="outline">
-          <a href={`${GITHUB_URL}/tree/main/apps/agent`} target="_blank" rel="noreferrer">
+          <a href={`${GITHUB_URL}/tree/master/apps/agent`} target="_blank" rel="noreferrer">
             {t.install.agentCta}
           </a>
         </Button>
@@ -226,7 +226,7 @@ export function InstallSection() {
         <div className="prose-doc">
           <pre>
             <code>{`# Optional self-host control plane (Oracle Cloud Always Free)
-curl -fsSL https://raw.githubusercontent.com/appleweiping/visa-lark/main/apps/control-plane/install.sh | bash`}</code>
+curl -fsSL https://raw.githubusercontent.com/appleweiping/visa-lark/master/apps/control-plane/install.sh | bash`}</code>
           </pre>
         </div>
       </div>

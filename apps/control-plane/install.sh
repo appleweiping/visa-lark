@@ -2,7 +2,7 @@
 # VisaLark control-plane one-line installer.
 # Self-host on an Oracle Cloud Always Free VM (or any Linux box with Docker).
 #
-#   curl -fsSL https://raw.githubusercontent.com/<you>/visa-lark/main/apps/control-plane/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/appleweiping/visa-lark/master/apps/control-plane/install.sh | bash
 #
 # This plane holds ZERO visa credentials and never talks to usvisa-info.
 # It only relays notifications and stores availability history you push to it.
