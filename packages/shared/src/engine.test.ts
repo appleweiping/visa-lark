@@ -135,6 +135,9 @@ describe("runMonitorOnce — fail-safe", () => {
     );
     expect(r.outcome).toBe("challenge");
     expect(r.next.kind).toBe("stopped");
+    // The host disables a stopped monitor, so the alert has to go out now.
+    expect(cap.sent.map((m) => m.kind)).toEqual(["challenge"]);
+    expect(cap.sent[0].priority).toBe("high");
   });
 
   it("notifies on session expiry and schedules a backoff", async () => {

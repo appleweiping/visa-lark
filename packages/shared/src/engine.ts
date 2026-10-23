@@ -96,6 +96,16 @@ export interface RunResult {
   requestsIssued: number;
 }
 
+/** Alert sent whenever a monitor stops itself; the host does not reschedule it. */
+function pausedMessage(reason: string): NotifyMessage {
+  return {
+    title: "⛔ 监控已暂停 / Monitoring paused",
+    body: reason,
+    priority: "high",
+    kind: "challenge",
+  };
+}
+
 function slotMessage(
   monitor: Monitor,
   date: string,
@@ -134,12 +144,7 @@ export async function runMonitorOnce(
   // 1) Fail-safe gate BEFORE any network call.
   const gate = decideNextAction(backoff, profile, now);
   if (gate.kind === "stop") {
-    await dispatch(deps.channels, {
-      title: "⛔ 监控已暂停 / Monitoring paused",
-      body: gate.reason,
-      priority: "high",
-      kind: "challenge",
-    });
+    await dispatch(deps.channels, pausedMessage(gate.reason));
     return {
       outcome: "challenge",
       next: { kind: "stopped", reason: gate.reason },
@@ -189,6 +194,8 @@ export async function runMonitorOnce(
     }
     const action = decideNextAction(newBackoff, profile, now);
     if (action.kind === "stop") {
+      // Both hosts disable a stopped monitor, so this is the only chance to tell the user.
+      await dispatch(deps.channels, pausedMessage(action.reason));
       return {
         outcome: day.outcome,
         next: { kind: "stopped", reason: action.reason },
@@ -258,6 +265,7 @@ export async function runMonitorOnce(
       }
       const action = decideNextAction(workingBackoff, profile, now);
       if (action.kind === "stop") {
+        await dispatch(deps.channels, pausedMessage(action.reason));
         return {
           outcome: times.outcome,
           next: { kind: "stopped", reason: action.reason },
