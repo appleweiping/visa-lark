@@ -26,7 +26,6 @@ export function SiteHeader() {
       <div className="container-page flex h-16 items-center justify-between gap-4">
         <Link href="/" className="flex items-center gap-2.5 font-bold text-foreground">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-lark-500 to-lark-700 text-white shadow-md shadow-lark-600/30">
-            {/* lark mark — replaced by /mascot.png art later */}
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
               <path d="M3 14c4-1 6-4 7-8 1 3 3 5 6 5l-3 3 4 1-5 2-2 4-1-5-6-2z" strokeLinejoin="round" />
             </svg>

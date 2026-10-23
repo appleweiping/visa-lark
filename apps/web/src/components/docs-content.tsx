@@ -18,7 +18,7 @@ type DocBlock =
   | { type: "note"; text: string };
 
 // Long-form docs are authored in zh + en. ja/ko fall back to en until
-// full doc translations land (the marketing site is fully localized).
+// full doc translations land (the landing page is translated).
 const DOCS: Partial<Record<Locale, DocSection[]>> = {
   zh: [
     {
@@ -27,25 +27,25 @@ const DOCS: Partial<Record<Locale, DocSection[]>> = {
       blocks: [
         { type: "p", text: "VisaLark 的数据面（浏览器扩展或本地 Agent）跑在你自己的住宅网络上，复用你已登录的签证网站会话。四步即可运行：" },
         { type: "ol", items: [
-          "在 Chrome / Edge 安装 VisaLark 扩展（从 Releases 下载 .zip 并加载，或等待商店上架）。",
+          "在 Chrome / Edge 安装 VisaLark 扩展（从 Releases 下载 .zip，解压后用“加载已解压的扩展程序”加载）。",
           "在同一个浏览器里像平时一样登录 usvisa-info——VisaLark 不会替你保存密码。",
           "打开扩展面板，新建一个监控：选择领馆（可多选）、签证类型、可接受日期范围、星期与时段过滤。",
           "配置通知渠道（Bark / Server酱 / Telegram / Webhook），选择预约模式（默认“仅通知”），保存即开始监控。",
         ]},
-        { type: "note", text: "默认轮询节奏为 patient（90–300 秒带抖动）。这不是一个“秒抢”工具——它在安全的前提下提高你的命中率。" },
+        { type: "note", text: "默认轮询节奏为 patient（约 5 分钟一次，±40% 随机抖动）。这不是一个“秒抢”工具。" },
       ],
     },
     {
       id: "safety-model",
       title: "安全模型",
       blocks: [
-        { type: "p", text: "美国签证系统运行按用户行为 ML，叠加 Cloudflare 与 reCAPTCHA。最致命的封号信号不是轮询频率，而是 ASN / 不可能旅行 不匹配。" },
+        { type: "p", text: "预约网站前面有 Cloudflare 和 reCAPTCHA。最容易导致封号的信号不是轮询频率，而是请求来源和登录地不一致。" },
         { type: "h3", text: "为什么数据面必须跑在你的住宅网络" },
         { type: "p", text: "如果你从中国住宅 IP 登录，同一会话却从云数据中心 IP 拉取名额接口，这就是教科书式的账号盗用特征，会导致真实签证账号被快速停用。因此所有触碰 usvisa-info 的代码都只在你登录的地方运行——绝不在云服务器上轮询。" },
         { type: "h3", text: "零凭据与零绕过" },
         { type: "ul", items: [
           "默认只用 Cookie / 会话复用，不存签证密码；控制面完全不接触凭据。",
-          "仓库内没有代理轮换、指纹伪造、验证码破解、TLS 伪装等任何绕过代码——这既是账号护盾也是法律护盾。",
+          "仓库内没有代理轮换、指纹伪造、验证码破解、TLS 伪装等绕过代码。",
           "遇到 Turnstile / 401 / 403 / 1015 / 验证码，一律停止并通知你，绝不硬闯。",
         ]},
       ],
@@ -56,8 +56,8 @@ const DOCS: Partial<Record<Locale, DocSection[]>> = {
       blocks: [
         { type: "p", text: "每个监控可独立选择三种模式之一：" },
         { type: "ul", items: [
-          "仅通知（notify）：发现名额只推送，由你手动预约。风险最低。",
-          "一键确认（confirm，默认头牌）：推送带一键按钮，点击后用热会话在 1 秒内完成改签。人始终在环内。",
+          "仅通知（notify，默认）：发现名额只推送，由你手动预约。风险最低。",
+          "一键确认（confirm）：通知里带一个按钮，打开确认页，点一下就用你已登录的浏览器会话改期。实验性功能。本地 Agent 没有确认页，会把 confirm 当作 notify 处理。",
           "自动改签（auto）：默认关闭，满足联锁条件时无人值守自动改签。风险高。",
         ]},
         { type: "h3", text: "auto 模式的联锁（开启时强制生效）" },
@@ -101,9 +101,9 @@ const DOCS: Partial<Record<Locale, DocSection[]>> = {
       title: "常见问题 FAQ",
       blocks: [
         { type: "h3", text: "它能保证我抢到最热门领馆的名额吗？" },
-        { type: "p", text: "不能，我们也不会这么承诺。30 秒内抢到最火爆名额只能靠付费住宅代理 IP 舰队，而那会让账号被封。VisaLark 提高你的整体命中率、捕捉你本会错过的释放，且不拿账号冒险。" },
+        { type: "p", text: "不能，我也不这么承诺。几秒内就被抢光的名额只能靠付费住宅代理 IP 池去拼，而那很容易让账号被封。VisaLark 帮你捕捉那些本会错过的释放，但不拿账号冒险。" },
         { type: "h3", text: "需要我提供签证账号密码吗？" },
-        { type: "p", text: "不需要。默认只复用你浏览器里已登录的会话。我们绝不要求、也不存储签证密码。" },
+        { type: "p", text: "不需要。默认只复用你浏览器里已登录的会话。它从不要求、也不存储签证密码。" },
         { type: "h3", text: "可以跑在云服务器上 24 小时监控吗？" },
         { type: "p", text: "数据面不行——云 IP 轮询是最危险的封号信号。本地 Agent 适合跑在你家里的电脑或树莓派上（住宅网络）。只有零凭据的控制面可以上云。" },
         { type: "h3", text: "支持哪些领馆？" },
@@ -118,25 +118,25 @@ const DOCS: Partial<Record<Locale, DocSection[]>> = {
       blocks: [
         { type: "p", text: "VisaLark's data plane (browser extension or local agent) runs on your own residential network and reuses the visa-site session you're already logged into. Four steps:" },
         { type: "ol", items: [
-          "Install the VisaLark extension in Chrome / Edge (load the .zip from Releases, or wait for the store listing).",
+          "Install the VisaLark extension in Chrome / Edge (download the .zip from Releases, unzip it and use 'Load unpacked').",
           "Log into usvisa-info in that same browser as you normally would — VisaLark never stores a password for you.",
           "Open the extension panel and create a monitor: pick consulates (multiple allowed), visa type, acceptable date range, day-of-week and time-of-day filters.",
           "Configure notification channels (Bark / Server酱 / Telegram / Webhook), choose a booking mode (default 'notify only'), and save to start monitoring.",
         ]},
-        { type: "note", text: "Default poll cadence is 'patient' (90–300s jittered). This is not a 'grab in seconds' tool — it raises your hit-rate, safely." },
+        { type: "note", text: "Default poll cadence is 'patient' (about every 5 minutes, ±40% jitter). This is not a 'grab in seconds' tool." },
       ],
     },
     {
       id: "safety-model",
       title: "The safety model",
       blocks: [
-        { type: "p", text: "The US visa system runs per-customer behavioral ML on top of Cloudflare and reCAPTCHA. The lethal ban signal is not poll cadence — it's ASN / impossible-travel mismatch." },
+        { type: "p", text: "The appointment site sits behind Cloudflare and reCAPTCHA. The signal most likely to get an account banned is not poll cadence but a mismatch between where you logged in and where the requests come from." },
         { type: "h3", text: "Why the data plane must run on your residential network" },
         { type: "p", text: "If you log in from a Chinese residential IP and the same session then hits the availability API from a cloud datacenter IP, that's a textbook account-takeover signature and gets your real visa account suspended fast. So all code that touches usvisa-info runs only where you logged in — never polling from a cloud server." },
         { type: "h3", text: "Zero credentials, zero evasion" },
         { type: "ul", items: [
           "Cookie / session reuse by default — no stored visa password; the control plane never touches credentials.",
-          "No proxy rotation, fingerprint spoofing, CAPTCHA solving, or TLS impersonation anywhere in the repo — this is both the account shield and the legal shield.",
+          "No proxy rotation, fingerprint spoofing, CAPTCHA solving, or TLS impersonation anywhere in the repo.",
           "On any Turnstile / 401 / 403 / 1015 / challenge, STOP and notify you — never retry-through.",
         ]},
       ],
@@ -147,8 +147,8 @@ const DOCS: Partial<Record<Locale, DocSection[]>> = {
       blocks: [
         { type: "p", text: "Each monitor independently picks one of three modes:" },
         { type: "ul", items: [
-          "notify: slot found → push only, you book manually. Lowest risk.",
-          "confirm (the headline default): push with a one-tap button → reschedule in under a second on a warm session. Human always in the loop.",
+          "notify (default): slot found → push only, you book manually. Lowest risk.",
+          "confirm: the alert carries a button that opens a confirmation page; one click reschedules with your logged-in browser session. Experimental. The local agent has no confirmation page and treats confirm as notify.",
           "auto: OFF by default; unattended auto-reschedule when interlocks pass. High risk.",
         ]},
         { type: "h3", text: "Auto-mode interlocks (enforced when enabled)" },
@@ -192,9 +192,9 @@ const DOCS: Partial<Record<Locale, DocSection[]>> = {
       title: "FAQ",
       blocks: [
         { type: "h3", text: "Will it guarantee I grab a slot at the hottest consulates?" },
-        { type: "p", text: "No, and we won't pretend otherwise. Winning the sub-30-second race for the hottest slots requires paid residential-proxy IP fleets that get accounts banned. VisaLark raises your overall hit-rate and catches releases you'd otherwise miss, without gambling your account." },
+        { type: "p", text: "No. Winning the race for slots that disappear within seconds takes paid residential-proxy pools, which get accounts banned. VisaLark catches releases you would otherwise miss, without gambling your account." },
         { type: "h3", text: "Do I need to hand over my visa password?" },
-        { type: "p", text: "No. By default it only reuses the session already logged into your browser. We never require or store a visa password." },
+        { type: "p", text: "No. By default it only reuses the session already logged into your browser. It never asks for or stores a visa password." },
         { type: "h3", text: "Can I run a 24/7 monitor on a cloud server?" },
         { type: "p", text: "Not the data plane — cloud-IP polling is the most dangerous ban signal. The local agent is meant for a home PC or Raspberry Pi (residential network). Only the zero-credential control plane belongs in the cloud." },
         { type: "h3", text: "Which consulates are supported?" },

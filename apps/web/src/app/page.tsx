@@ -7,12 +7,10 @@ import { ArrowRight, Check } from "lucide-react";
 import { useLocale } from "@/lib/locale-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   WhatSection,
   SafetySection,
   FeaturesSection,
-  CompareSection,
   InstallSection,
   DisclaimerSection,
 } from "@/components/landing-sections";
@@ -47,11 +45,6 @@ export default function LandingPage() {
             </h1>
             <p className="mt-3 text-xl font-medium text-primary">{t.hero.subtitle}</p>
             <p className="mt-5 max-w-xl text-lg leading-8 text-muted-foreground">{t.hero.tagline}</p>
-            <Alert className="mt-4 max-w-xl border-feather-200 bg-feather-50 text-feather-800 dark:border-feather-900/60 dark:bg-feather-900/20 dark:text-feather-200">
-              <AlertDescription className="text-feather-800 dark:text-feather-200">
-                {t.hero.honestNote}
-              </AlertDescription>
-            </Alert>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Button asChild size="lg" className="glow-primary">
@@ -78,9 +71,9 @@ export default function LandingPage() {
             </ul>
           </div>
 
-          {/* Hero art placeholder — real mascot/banner art generated later.
-              When the 3D scene is active it takes over this column visually,
-              so the static card gently fades out (and returns as fallback). */}
+          {/* Screenshot of the extension popup. When the 3D scene is active it
+              takes over this column, so the card fades out (and comes back as
+              the fallback without WebGL or with reduced motion). */}
           <div
             aria-hidden={sceneActive}
             // NB: animate-fade-up must come off when hiding — its `both` fill
@@ -89,19 +82,16 @@ export default function LandingPage() {
               sceneActive ? "pointer-events-none opacity-0" : "animate-fade-up opacity-100"
             }`}
           >
-            <div className="relative mx-auto max-w-md">
+            <div className="relative mx-auto max-w-[300px]">
               <div className="absolute -inset-4 rounded-3xl bg-gradient-to-tr from-lark-400/20 to-feather-300/20 blur-2xl" />
               <div className="relative overflow-hidden rounded-2xl border bg-card shadow-sm">
-                {/* Intentional <img> placeholders per spec — real art (/banner.png,
-                    /mascot.png) is generated later. Kept as plain <img> so the
-                    placeholders work without next/image's optimizer. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="/banner.png"
-                  alt="VisaLark 签证云雀 — a friendly lark mascot watching a visa appointment calendar light up with an open slot"
-                  width={640}
-                  height={480}
-                  className="h-auto w-full bg-gradient-to-br from-lark-100 to-feather-100 object-cover dark:from-lark-900/40 dark:to-feather-900/30"
+                  src="/popup.png"
+                  alt="The VisaLark extension popup: session status, three monitors and recent checks (made-up data)"
+                  width={768}
+                  height={1422}
+                  className="h-auto w-full"
                 />
               </div>
             </div>
@@ -112,7 +102,6 @@ export default function LandingPage() {
       <WhatSection />
       <SafetySection />
       <FeaturesSection />
-      <CompareSection />
       <InstallSection />
       <DisclaimerSection />
     </>

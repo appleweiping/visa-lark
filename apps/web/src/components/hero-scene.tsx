@@ -371,7 +371,7 @@ export default function HeroScene({ onActiveChange, className }: HeroSceneProps)
         calendarGroup.scale.setScalar(0.92);
       } else {
         // Narrow viewport: hero copy stacks on top, so keep the whole scene in
-        // the lower half (where the static banner card used to sit).
+        // the lower half (where the static screenshot card sits).
         globeGroup.position.set(-0.55, -2.45, 0);
         globeGroup.scale.setScalar(0.9);
         calendarGroup.position.set(1.05, -1.25, 0.3);

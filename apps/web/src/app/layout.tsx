@@ -11,14 +11,16 @@ import { SITE_URL } from "@/lib/site";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
+const DESCRIPTION =
+  "Checks the US visa appointment calendar from your own logged-in browser and notifies you (Bark, WeChat, Telegram) when an earlier date opens.";
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "VisaLark 签证云雀 — open-source US visa appointment monitor",
+    default: "VisaLark 签证云雀 — US visa appointment monitor",
     template: "%s · VisaLark",
   },
-  description:
-    "Open-source US visa appointment monitor. Residential-IP, zero-credential, zero-evasion. Improve your odds and catch slots you'd otherwise miss — safely.",
+  description: DESCRIPTION,
   keywords: [
     "US visa appointment",
     "visa monitor",
@@ -27,31 +29,30 @@ export const metadata: Metadata = {
     "美国签证 预约",
     "open source",
   ],
-  authors: [{ name: "VisaLark" }],
+  authors: [{ name: "Weiping Yan", url: "https://github.com/appleweiping" }],
+  icons: { icon: "/mascot.png" },
   openGraph: {
     type: "website",
     url: SITE_URL,
     siteName: "VisaLark 签证云雀",
     locale: "zh_CN",
     alternateLocale: ["en_US", "ja_JP", "ko_KR"],
-    title: "VisaLark 签证云雀 — open-source US visa appointment monitor",
-    description:
-      "Account-safety first. Residential-IP, zero-credential, zero-evasion. Catch slots you'd otherwise miss.",
+    title: "VisaLark 签证云雀 — US visa appointment monitor",
+    description: DESCRIPTION,
     images: [
       {
-        url: "/banner.png",
-        width: 1200,
-        height: 630,
-        alt: "VisaLark 签证云雀 — open-source, account-safe US visa appointment monitor",
+        url: "/popup.png",
+        width: 768,
+        height: 1422,
+        alt: "The VisaLark extension popup with session status, monitors and recent checks",
       },
     ],
   },
   twitter: {
-    card: "summary_large_image",
-    title: "VisaLark 签证云雀 — open-source US visa appointment monitor",
-    description:
-      "Open-source US visa appointment monitor. Account-safety first: residential-IP, zero-credential, zero-evasion.",
-    images: ["/banner.png"],
+    card: "summary",
+    title: "VisaLark 签证云雀 — US visa appointment monitor",
+    description: DESCRIPTION,
+    images: ["/popup.png"],
   },
   robots: { index: true, follow: true },
 };

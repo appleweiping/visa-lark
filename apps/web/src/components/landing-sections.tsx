@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { Check } from "lucide-react";
 import { useLocale } from "@/lib/locale-context";
 import { Section, SectionHeading } from "@/components/section";
 import { Icon } from "@/components/icon";
@@ -9,14 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Tooltip,
   TooltipContent,
@@ -131,58 +122,6 @@ export function FeaturesSection() {
           </Card>
         ))}
       </div>
-    </Section>
-  );
-}
-
-/* ===================== Comparison ===================== */
-export function CompareSection() {
-  const { t } = useLocale();
-  return (
-    <Section id="compare" className="bg-muted/40">
-      <SectionHeading eyebrow={t.compare.eyebrow} title={t.compare.title} subtitle={t.compare.subtitle} />
-      <div className="mt-10 overflow-hidden rounded-2xl border bg-card shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-b-2 bg-muted/50 hover:bg-muted/50">
-              <TableHead className="w-[26%]" />
-              <TableHead className="w-[40%] bg-primary/[0.06] py-4">
-                <span className="inline-flex items-center gap-2 text-sm font-bold text-primary">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-pulse-soft rounded-full bg-primary/60" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-                  </span>
-                  {t.compare.columns.us}
-                </span>
-              </TableHead>
-              <TableHead className="py-4 font-semibold text-muted-foreground">
-                {t.compare.columns.them}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {t.compare.rows.map((row) => (
-              <TableRow key={row.label} className="group transition-colors">
-                <TableHead scope="row" className="py-4 align-top font-medium text-foreground">
-                  {row.label}
-                </TableHead>
-                <TableCell className="bg-primary/[0.04] py-4 align-top text-foreground transition-colors group-hover:bg-primary/[0.08]">
-                  <span className="inline-flex items-start gap-2">
-                    <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary/10">
-                      <Check className="h-3.5 w-3.5 text-primary" />
-                    </span>
-                    {row.us}
-                  </span>
-                </TableCell>
-                <TableCell className="py-4 align-top text-muted-foreground">{row.them}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-      <p className="mx-auto mt-6 max-w-3xl text-center text-sm leading-6 text-muted-foreground">
-        {t.compare.footnote}
-      </p>
     </Section>
   );
 }
