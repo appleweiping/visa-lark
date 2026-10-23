@@ -17,6 +17,7 @@ code, fail-stop on any challenge. Plus one extra interlock the extension doesn't
 ```bash
 # from the repository root (pnpm ≥ 9, Node ≥ 20)
 corepack pnpm install
+corepack pnpm build:packages                      # the agent imports the built workspace packages
 corepack pnpm --filter @visa-lark/agent build
 
 cp apps/agent/visalark.config.example.json apps/agent/visalark.config.json
@@ -117,7 +118,8 @@ corepack pnpm --filter @visa-lark/agent typecheck
 
 ## 中文快速上手
 
-1. 仓库根目录：`corepack pnpm install && corepack pnpm --filter @visa-lark/agent build`。
+1. 仓库根目录：`corepack pnpm install && corepack pnpm build:packages && corepack pnpm --filter @visa-lark/agent build`
+   （先构建 `packages/*`，Agent 依赖它们的 `dist/`）。
 2. `cp apps/agent/visalark.config.example.json apps/agent/visalark.config.json`，然后编辑：
    从你**自己登录**的浏览器里复制 `_yatri_session` Cookie，填入领馆代码（如 `en-cn`）、
    schedule id、现有预约信息和通知渠道（Bark / Server酱）。

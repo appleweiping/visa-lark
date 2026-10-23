@@ -51,10 +51,14 @@ in `src/lib/guards.ts` with unit tests — the worker is a thin wrapper over the
 
 | Permission | Why |
 |---|---|
-| `host_permissions: https://ais.usvisa-info.com/*` | The **only** host the extension can talk to. Least privilege: no `<all_urls>`, no analytics endpoints, nothing else. |
+| `host_permissions: https://ais.usvisa-info.com/*` | The visa site, granted at install. |
+| `optional_host_permissions: https://*/*, http://*/*` | Nothing is granted at install. When you click **发送测试通知 / send test** (or save a control-plane URL) the options page asks for exactly the hosts you configured: `api.day.app` (or your own Bark server), `sctapi.ftqq.com`, `api.telegram.org`, your webhook's host, your control plane. Without this the worker's requests to those services are cross-origin, and the JSON POSTs (Telegram, webhooks, control plane) would be blocked by CORS. |
 | `storage` | Persists monitors, schedule state, backoff and logs across the ephemeral MV3 worker lifecycle. |
 | `alarms` | The jittered polling schedule. MV3 workers can't hold timers, so `chrome.alarms` is the scheduler. |
 | `notifications` | Native browser notifications as one of the alert channels. |
+
+The test button sends a real test message through every configured channel and shows, per
+channel, whether it was delivered, so you can check the setup before relying on it.
 
 No `tabs` content reading, no `cookies` permission, no content scripts injected into the visa site.
 The popup only parses the *URL* of the active tab (embassy code + schedule id) when you click
@@ -63,9 +67,9 @@ The popup only parses the *URL* of the active tab (embassy code + schedule id) w
 ## How it stays account-safe
 
 1. **Your IP, your fingerprint, your cookies.** Requests are sent by your own browser from your
-   residential connection, with the session cookie the browser already holds. We never read or
-   export the cookie (`cookie: "(browser-managed)"` — the browser attaches it itself), never store
-   your password, never automate login.
+   residential connection, with the session cookie the browser already holds. The extension never
+   reads or exports the cookie (`cookie: "(browser-managed)"` — the browser attaches it itself),
+   never stores your password and never automates login.
 2. **No evasion, ever.** No proxy rotation, no fingerprint spoofing, no CAPTCHA solving, no TLS
    impersonation. On a challenge or 401/403/1015 the worker stops and tells you.
 3. **Budgeted, jittered polling.** Conservative poll profiles with randomized jitter and a global
@@ -80,6 +84,7 @@ From the repository root (pnpm ≥ 9, Node ≥ 20):
 
 ```bash
 corepack pnpm install
+corepack pnpm build:packages                          # the extension imports the built workspace packages
 corepack pnpm --filter @visa-lark/extension build   # vite + @crxjs/vite-plugin
 # output: apps/extension/dist
 ```
@@ -106,6 +111,8 @@ corepack pnpm --filter @visa-lark/extension typecheck
 4. Click **Load unpacked** and select the `apps/extension/dist` folder.
 5. Log into `ais.usvisa-info.com` yourself and open your appointment/reschedule page.
 6. Click the VisaLark icon → **Sync current session**, then add a monitor in Settings.
+7. Add your notification channels and click **发送测试通知 / send test**; allow the host access
+   prompt so the alerts can leave the browser.
 
 That's it — the extension polls quietly in the background and pushes when a slot appears.
 
@@ -113,12 +120,13 @@ That's it — the extension polls quietly in the background and pushes when a sl
 
 ## 中文快速上手
 
-1. 构建：仓库根目录执行 `corepack pnpm install && corepack pnpm --filter @visa-lark/extension build`，
+1. 构建：仓库根目录执行 `corepack pnpm install && corepack pnpm build:packages && corepack pnpm --filter @visa-lark/extension build`，
    产物在 `apps/extension/dist`（也可直接从 Releases 下载）。
 2. 打开 `chrome://extensions`，开启「开发者模式」，点「加载已解压的扩展程序」，选择 `dist` 目录。
 3. **自己**登录 `ais.usvisa-info.com`，打开预约/改签页面。
 4. 点击扩展图标 →「同步当前会话」（自动从标签页 URL 读取领馆与 schedule id，无需手填）。
 5. 在设置页添加监控（领馆、签证类型、日期范围、模式）和通知渠道（Bark / Server酱 / Telegram）。
+6. 点「发送测试通知」，浏览器询问是否允许访问这些推送服务的域名时选「允许」，然后看每个渠道是否送达。
 
 安全要点：扩展只在你自己的浏览器里、用你自己的住宅 IP 和已登录会话工作；不存密码、不读 Cookie、
 零绕过代码；遇到验证码 / 401 / 403 / 1015 一律停止并通知你。改签默认关闭，开启后也有
