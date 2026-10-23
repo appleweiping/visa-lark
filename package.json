@@ -17,7 +17,6 @@
     "clean": "pnpm -r exec rimraf dist node_modules .turbo || true"
   },
   "devDependencies": {
-    "@resvg/resvg-js": "^2.6.2",
     "@types/node": "^22.10.2",
     "rimraf": "^6.0.1",
     "tsup": "^8.3.5",
