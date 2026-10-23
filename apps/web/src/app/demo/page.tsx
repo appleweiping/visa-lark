@@ -3,9 +3,11 @@
 import { useMemo } from "react";
 import { useLocale } from "@/lib/locale-context";
 import {
+  addDays,
   buildBoard,
   buildHeatmap,
   DOW_LABELS,
+  useDemoToday,
   type AvailabilityStatus,
 } from "@/lib/demo-data";
 import { BestTimeCard, HeatmapCard, MonitorConfig, NotifyPreview } from "@/components/demo-widgets";
@@ -27,6 +29,7 @@ export default function DemoPage() {
   const { t, locale } = useLocale();
   const board = useMemo(() => buildBoard(), []);
   const heatmap = useMemo(() => buildHeatmap(), []);
+  const today = useDemoToday();
   const dowLabels = DOW_LABELS[locale] ?? DOW_LABELS.en!;
 
   return (
@@ -87,9 +90,12 @@ export default function DemoPage() {
                     <span className="text-xs text-muted-foreground">{row.facility.name}</span>
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    {row.earliestDate ? (
+                    {row.earliestOffsetDays !== null ? (
                       <>
-                        {t.demo.earliest}: <span className="font-medium text-primary">{row.earliestDate}</span>
+                        {t.demo.earliest}:{" "}
+                        <span className="font-medium text-primary">
+                          {today ? addDays(today, row.earliestOffsetDays) : "…"}
+                        </span>
                         {row.openSlots > 0 && <span className="ml-2">· {row.openSlots} slots</span>}
                       </>
                     ) : (

@@ -1,10 +1,12 @@
 /**
- * Mock data for the live demo. PURE & deterministic (seeded) — the demo makes
- * ZERO network requests and never touches the visa site. This is UX showcase only.
+ * Made-up data for the demo page. It is generated from a fixed seed, makes no
+ * network requests and never touches the visa site. Dates are offsets from
+ * today so the demo never shows dates in the past.
  *
  * Facility reference data is inlined locally (src/lib/facility-seeds.ts) so the
  * web app is self-contained and deploys as a standalone Next.js project.
  */
+import { useEffect, useState } from "react";
 import { FACILITY_SEEDS, type FacilitySeed } from "@/lib/facility-seeds";
 
 export type AvailabilityStatus = "plenty" | "scarce" | "none";
@@ -12,7 +14,8 @@ export type AvailabilityStatus = "plenty" | "scarce" | "none";
 export interface ConsulateBoardRow {
   facility: FacilitySeed;
   status: AvailabilityStatus;
-  earliestDate: string | null;
+  /** Days from today to the earliest open date, or null if there is none. */
+  earliestOffsetDays: number | null;
   openSlots: number;
   /** Minutes since last update (mock). */
   updatedMinutesAgo: number;
@@ -30,14 +33,25 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-function addDays(base: Date, days: number): string {
+export function addDays(base: Date, days: number): string {
   const d = new Date(base);
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 }
 
-/** A fixed reference "now" so SSR and client agree (no hydration mismatch). */
-export const DEMO_NOW = new Date("2026-06-09T01:00:00Z");
+/**
+ * Today's date (UTC midnight), read after mount. It is null during the server
+ * render and the first client render, so the two always match; the dates fill
+ * in right after hydration.
+ */
+export function useDemoToday(): Date | null {
+  const [today, setToday] = useState<Date | null>(null);
+  useEffect(() => {
+    const now = new Date();
+    setToday(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())));
+  }, []);
+  return today;
+}
 
 /** Build a deterministic availability board across the seeded consulates. */
 export function buildBoard(): ConsulateBoardRow[] {
@@ -70,7 +84,7 @@ export function buildBoard(): ConsulateBoardRow[] {
       facility,
       status,
       openSlots,
-      earliestDate: earliestOffset === null ? null : addDays(DEMO_NOW, earliestOffset),
+      earliestOffsetDays: earliestOffset,
       updatedMinutesAgo: 1 + Math.floor(rand() * 12),
     };
   });

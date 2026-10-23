@@ -5,6 +5,7 @@ import { useLocale } from "@/lib/locale-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { addDays, useDemoToday } from "@/lib/demo-data";
 
 /* ---------- Best time to check ---------- */
 export function BestTimeCard({ bestHour }: { bestHour: number }) {
@@ -110,8 +111,9 @@ const CITIES = [
 export function MonitorConfig() {
   const { t } = useLocale();
   const [cities, setCities] = useState<string[]>(["95", "98"]);
-  const [mode, setMode] = useState<"notify" | "confirm" | "auto">("confirm");
+  const [mode, setMode] = useState<"notify" | "confirm" | "auto">("notify");
   const [dow, setDow] = useState<number[]>([1, 2, 3, 4, 5]);
+  const today = useDemoToday();
 
   const toggleCity = (id: string) =>
     setCities((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
@@ -163,7 +165,7 @@ export function MonitorConfig() {
             <div>
               <label className="text-xs font-medium text-muted-foreground">{t.demo.fields.cadence}</label>
               <div className="mt-2 rounded-lg border px-3 py-2 text-foreground">
-                patient · 90–300s
+                patient · ~5 min ±40%
               </div>
             </div>
           </div>
@@ -171,7 +173,7 @@ export function MonitorConfig() {
           <div>
             <label className="text-xs font-medium text-muted-foreground">{t.demo.fields.dateRange}</label>
             <div className="mt-2 rounded-lg border px-3 py-2 text-foreground">
-              2026-06-15 → 2026-09-30
+              {today ? `${addDays(today, 7)} → ${addDays(today, 120)}` : "…"}
             </div>
           </div>
 
