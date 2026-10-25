@@ -10,8 +10,9 @@ import type { HttpResponse, HttpTransport } from "@visa-lark/shared";
  * the genuine browser TLS/JA3 fingerprint. There is NOTHING to fake and NOTHING
  * to store — we are simply reusing the session the human already established.
  *
- * This is why the extension is account-safe where a cloud poller is not: no
- * ASN/impossible-travel mismatch, no synthetic fingerprint, no stored password.
+ * This is why the extension carries less account risk than a cloud poller: the
+ * requests come from the network where the user logged in, with a real browser
+ * fingerprint and no stored password. The site can still flag the account.
  */
 export class BrowserTransport implements HttpTransport {
   async request(input: {

@@ -8,8 +8,9 @@ import {
 
 /**
  * Pure host-side helpers extracted from the background service worker so the
- * money-path logic (confirm guard, global budget, idempotency) is unit-testable
- * without a `chrome` mock. The worker is a thin wrapper over these.
+ * checks around booking and request limits (confirm guard, global budget,
+ * duplicate bookings) can be unit-tested without a `chrome` mock. The worker is
+ * a thin wrapper over these.
  */
 
 export const DAY_MS = 24 * 60 * 60_000;
@@ -53,7 +54,7 @@ export function checkConfirmGuard(
     return { ok: false, reason: "该监控处于安全冷却中（曾遇验证拦截/限制），请稍后再试或重新同步会话。" };
   }
   if (usedToday(globalPolls, now) >= globalCap(pollProfile)) {
-    return { ok: false, reason: "今日请求已达账号安全上限，请明日再试。" };
+    return { ok: false, reason: "今日请求已达每日上限，请明日再试。" };
   }
   return { ok: true };
 }
