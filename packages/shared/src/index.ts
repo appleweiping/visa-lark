@@ -17,4 +17,4 @@ export * from "./adapter.js";
 export * from "./notify.js";
 export * from "./engine.js";
 
-export const VISA_LARK_VERSION = "0.1.0";
+export const VISA_LARK_VERSION = "0.1.1";

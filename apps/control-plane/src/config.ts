@@ -41,4 +41,4 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   };
 }
 
-export const VERSION = "0.1.0";
+export const VERSION = "0.1.1";

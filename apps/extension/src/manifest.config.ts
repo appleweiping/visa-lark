@@ -16,7 +16,7 @@ import { defineManifest } from "@crxjs/vite-plugin";
 export default defineManifest({
   manifest_version: 3,
   name: "VisaLark 签证云雀 — US Visa Appointment Monitor",
-  version: "0.1.0",
+  version: "0.1.1",
   description:
     "Checks the US visa appointment calendar from the session you are logged into and notifies you when an earlier date opens. Stores no password.",
   icons: {

@@ -1,6 +1,6 @@
 {
   "name": "visa-lark",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Checks the US visa appointment calendar from your own logged-in browser and notifies you when an earlier date opens.",
   "license": "Apache-2.0",
