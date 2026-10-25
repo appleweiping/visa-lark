@@ -46,7 +46,7 @@ const DOCS: Partial<Record<Locale, DocSection[]>> = {
         { type: "ul", items: [
           "默认只用 Cookie / 会话复用，不存签证密码；控制面完全不接触凭据。",
           "仓库内没有代理轮换、指纹伪造、验证码破解、TLS 伪装等绕过代码。",
-          "遇到 Turnstile / 401 / 403 / 1015 / 验证码，停止或退避并通知你，不会尝试绕过。",
+          "遇到 Turnstile、403、验证码或会话过期（401）时暂停并提醒你；被限速（429、1015）时长时间退避。不会尝试绕过。",
         ]},
       ],
     },
@@ -137,7 +137,7 @@ const DOCS: Partial<Record<Locale, DocSection[]>> = {
         { type: "ul", items: [
           "Cookie / session reuse by default — no stored visa password; the control plane never touches credentials.",
           "No proxy rotation, fingerprint spoofing, CAPTCHA solving, or TLS impersonation anywhere in the repo.",
-          "On a Turnstile page, 401, 403, 1015 or other challenge, it stops or backs off and notifies you. It never retries through.",
+          "A Turnstile page, 403, CAPTCHA or expired session (401) pauses the monitor and alerts you; rate limiting (429, 1015) triggers a long back-off. It never retries through.",
         ]},
       ],
     },

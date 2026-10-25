@@ -25,7 +25,7 @@ fingerprint spoofing or CAPTCHA solving. See the [root README](../../README.md) 
 │    · MV3 workers are ephemeral → ALL state (backoff, schedule, budget, logs)          │
 │      persists in chrome.storage and is reloaded on every wake, so a worker            │
 │      eviction can never reset a cooldown                                              │
-│    · fail-stop: CAPTCHA / 401 / 403 / 1015 → stop and notify, never retry-through     │
+│    · challenge / 401 → pause and alert you; 429 / 1015 → long back-off                │
 │                                                                                       │
 │  popup (popup.html · src/ui/popup.ts)                                                 │
 │    · quick status, session health badge, recent activity                              │
@@ -73,7 +73,8 @@ The popup only parses the *URL* of the active tab (embassy code + schedule id) w
    reads or exports the cookie (`cookie: "(browser-managed)"` — the browser attaches it itself),
    never stores your password and never automates login.
 2. **No evasion code.** No proxy rotation, no fingerprint spoofing, no CAPTCHA solving, no TLS
-   impersonation. On a challenge or 401/403/1015 the worker stops or backs off and tells you.
+   impersonation. A challenge page (403, CAPTCHA) or an expired session (401) pauses the monitor
+   and alerts you; rate limiting (429, Cloudflare 1015) triggers a long back-off.
 3. **Budgeted, jittered polling.** Conservative poll profiles with randomized jitter and a global
    account-wide daily request ceiling, enforced even across worker restarts.
 4. **Destructive actions are human-gated.** Rescheduling is opt-in, guarded (only-earlier dates,
@@ -133,6 +134,6 @@ The extension then checks in the background and pushes an alert when a matching 
 6. 点「发送测试通知」，浏览器询问是否允许访问这些推送服务的域名时选「允许」，然后看每个渠道是否送达。
 
 安全要点：扩展只在你自己的浏览器里、用你自己的住宅 IP 和已登录会话工作；不存密码、不读 Cookie、
-没有代理和破解验证码的代码；遇到验证码 / 401 / 403 / 1015 会停止或退避并通知你。这能降低账号风险，
+没有代理和破解验证码的代码；遇到验证拦截（403、验证码）或会话过期（401）会暂停并提醒你，被限速（429、1015）时长时间退避。这能降低账号风险，
 但不能消除，网站仍可能限制它认为是自动化的账号。改签默认关闭，开启后也有
 「只许更早、前 N 次人工确认、每日上限、紧急停止」多重保险。风险自负，详见根目录 README 的免责声明。
