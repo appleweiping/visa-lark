@@ -23,7 +23,7 @@ import {
 } from "./endpoints.js";
 
 /**
- * usvisa-info adapter. Contains ZERO evasion code (DESIGN.md §3.2):
+ * usvisa-info adapter. Contains no evasion code (DESIGN.md §3.2):
  *  - no proxy logic, no CAPTCHA solving, no TLS impersonation, no stealth
  *  - it reuses an injected transport that carries the user's REAL session
  *    (browser context in the extension, or the user's exported cookie in the agent)

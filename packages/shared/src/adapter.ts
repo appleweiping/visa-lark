@@ -15,7 +15,7 @@ import type {
  * deprecating toward mytravel.state.gov, so keep this generic.
  *
  * An adapter implementation MUST:
- *  - contain ZERO evasion code (no proxies, no CAPTCHA solving, no stealth)
+ *  - contain no evasion code (no proxies, no CAPTCHA solving, no stealth)
  *  - reuse the real session the user acquired (cookie), never automate login
  *  - fail safe: surface `challenge`/`banned`/`expired` rather than retrying through
  */
