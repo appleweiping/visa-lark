@@ -147,7 +147,7 @@ export function InstallSection() {
 
       <div className="mx-auto mt-10 flex max-w-4xl flex-wrap items-center justify-center gap-3">
         <Button asChild>
-          <a href={`${GITHUB_URL}/releases`} target="_blank" rel="noreferrer">
+          <a href={`${GITHUB_URL}/releases/latest`} target="_blank" rel="noreferrer">
             {t.install.extensionCta}
           </a>
         </Button>
@@ -164,7 +164,7 @@ export function InstallSection() {
       <div className="mx-auto mt-8 max-w-2xl">
         <div className="prose-doc">
           <pre>
-            <code>{`# Optional self-host control plane (Oracle Cloud Always Free)
+            <code>{`# Optional self-hosted control plane (any Linux box with Docker)
 curl -fsSL https://raw.githubusercontent.com/appleweiping/visa-lark/master/apps/control-plane/install.sh | bash`}</code>
           </pre>
         </div>
