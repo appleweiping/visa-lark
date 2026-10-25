@@ -12,6 +12,7 @@ import { buildChannels } from "@visa-lark/notify";
 import { NodeTransport } from "./transport.js";
 import { checkEgressIp } from "./ip-guard.js";
 import {
+  ConfigError,
   loadConfig,
   toSession,
   loadState,
@@ -171,6 +172,9 @@ async function relay(
 }
 
 main().catch((e) => {
-  console.error("Fatal:", e);
+  // A config mistake is the user's to fix, so print just the message. Anything
+  // else is a bug and keeps its stack trace.
+  if (e instanceof ConfigError) console.error(e.message);
+  else console.error("Fatal:", e);
   process.exit(1);
 });

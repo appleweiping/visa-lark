@@ -34,15 +34,25 @@ export interface AgentConfig {
   stateFile?: string;
 }
 
+/** A problem in the user's config file. The agent prints the message without a stack trace. */
+export class ConfigError extends Error {
+  override name = "ConfigError";
+}
+
 export function loadConfig(path: string): AgentConfig {
   if (!existsSync(path)) {
-    throw new Error(
+    throw new ConfigError(
       `Config not found at ${path}. Copy visalark.config.example.json and fill it in.`,
     );
   }
-  const raw = JSON.parse(readFileSync(path, "utf8")) as Partial<AgentConfig>;
+  let raw: Partial<AgentConfig>;
+  try {
+    raw = JSON.parse(readFileSync(path, "utf8")) as Partial<AgentConfig>;
+  } catch (e) {
+    throw new ConfigError(`Config at ${path} is not valid JSON: ${(e as Error).message}`);
+  }
   if (!raw.session?.cookie || !raw.session.embassyCode || !raw.session.scheduleId) {
-    throw new Error("Config.session must include cookie, embassyCode, scheduleId.");
+    throw new ConfigError("Config.session must include cookie, embassyCode, scheduleId.");
   }
   const monitors = (raw.monitors ?? []).map((m) => Monitor.parse(m)).map((m) => {
     // The agent can't serve a one-tap confirm link (no local UI, and the

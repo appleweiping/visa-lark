@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { writeFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadConfig, toSession } from "../src/config.js";
+import { ConfigError, loadConfig, toSession } from "../src/config.js";
 
 function tmpConfig(obj: unknown): string {
   const dir = mkdtempSync(join(tmpdir(), "visalark-"));
@@ -35,6 +35,14 @@ describe("agent config", () => {
     // critical: there is no password concept anywhere in the session
     expect((s as Record<string, unknown>).password).toBeUndefined();
     expect(cfg.allowDatacenterIp).toBe(false); // safe default
+  });
+
+  it("reports a missing or malformed config file as a ConfigError", () => {
+    expect(() => loadConfig(join(tmpdir(), "visalark-does-not-exist.json"))).toThrow(ConfigError);
+    const dir = mkdtempSync(join(tmpdir(), "visalark-"));
+    const p = join(dir, "broken.json");
+    writeFileSync(p, "{ not json");
+    expect(() => loadConfig(p)).toThrow(/not valid JSON/);
   });
 
   it("rejects a config missing session credentials", () => {
