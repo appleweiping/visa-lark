@@ -1,15 +1,13 @@
 import { classifyIpOrg, type IpReputation } from "@visa-lark/shared";
 
 /**
- * Residential-IP guard (DESIGN.md §1, §3.1). The #1 account-ban vector is an
- * ASN / impossible-travel mismatch: logging in from a residential ISP but then
- * polling from a datacenter ASN. The local agent is meant to run on the user's
- * OWN home machine. This guard does a best-effort check of the egress IP's org
- * and REFUSES to start (unless explicitly overridden) if it looks like cloud
- * infrastructure.
+ * Residential-IP guard (DESIGN.md §1, §3.1). Logging in from a home ISP and then
+ * polling from a datacenter network can look like account takeover to the visa
+ * site. The local agent is meant to run on the user's own home machine, so this
+ * looks up the organization behind the public IP and refuses to start (unless
+ * overridden) if it looks like a cloud provider.
  *
- * This is a heuristic, not a guarantee. It is the agent honestly trying to keep
- * the user's visa account safe rather than silently risking a ban.
+ * It only matches organization names, so it can miss providers.
  */
 
 interface IpInfo {

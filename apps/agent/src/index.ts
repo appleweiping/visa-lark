@@ -22,9 +22,9 @@ import {
 } from "./config.js";
 
 /**
- * VisaLark local agent. Power-user data plane: runs 24x7 on the USER'S OWN
- * residential machine, cookie-only, same engine as the extension, same safety
- * laws. It refuses to run on detected cloud infra (residential-IP guard).
+ * VisaLark local agent. Runs the extension's monitor engine on the user's own
+ * home machine with a copied session cookie, and refuses to start on a detected
+ * cloud network (residential-IP guard).
  */
 
 const log = (msg: string) => console.log(`[${new Date().toISOString()}] ${msg}`);
@@ -46,7 +46,7 @@ async function main() {
   if (ip.checked) {
     log(`Egress IP ${ip.ip ?? "?"} org="${ip.org ?? "?"}"`);
     if (ip.isLikelyDatacenter) {
-      const m = `⛔ This looks like a DATACENTER IP (${ip.matchedHint}). Polling usvisa-info from a cloud ASN while you logged in from home is the #1 way to get your visa account SUSPENDED (impossible-travel detection). Run the agent on your own home network instead.`;
+      const m = `This looks like a datacenter IP (${ip.matchedHint}). Requests from a cloud network while you logged in from home can look like account takeover to the visa site and get the account restricted. Run the agent on your home network instead.`;
       if (!cfg.allowDatacenterIp) {
         log(m);
         log("Refusing to start. Set allowDatacenterIp:true to override (NOT recommended).");
@@ -54,10 +54,10 @@ async function main() {
       }
       log(`${m}\n(allowDatacenterIp override is set — proceeding against advice.)`);
     } else {
-      log("✅ IP looks residential. Safe to proceed.");
+      log("IP does not match a known cloud provider. Starting.");
     }
   } else {
-    log("⚠️ Could not verify egress IP. Proceeding, but ensure you're on your home network.");
+    log("Could not look up the egress IP. Starting anyway; make sure you are on your home network.");
   }
 
   const state: AgentState = loadState(cfg.stateFile!);
@@ -132,7 +132,7 @@ async function main() {
     if (cfg.allowDatacenterIp) return;
     const r = await checkEgressIp();
     if (r.checked && r.isLikelyDatacenter) {
-      log(`⛔ Egress IP changed to a datacenter (${r.matchedHint}). Stopping all monitors to protect your account.`);
+      log(`Egress IP changed to a datacenter network (${r.matchedHint}). Stopping all monitors.`);
       for (const t of timers.values()) clearTimeout(t);
       timers.clear();
     }

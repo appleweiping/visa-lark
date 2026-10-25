@@ -1,9 +1,9 @@
 # VisaLark local agent — for power users running 24x7 on their OWN machine.
 #
-# ⚠️ Run this on your HOME network, NOT a cloud VM. Polling usvisa-info from a
-# datacenter IP while you logged in from home triggers impossible-travel
-# detection and can suspend your visa account. The agent checks egress IP and
-# refuses to start on detected cloud infra by default.
+# Run this on your home network, not a cloud VM. Polling usvisa-info from a
+# datacenter IP while you logged in from home can look like account takeover
+# and get the visa account restricted (DESIGN.md §1). The agent checks its
+# public IP and refuses to start on a detected cloud network by default.
 FROM node:22-slim AS build
 WORKDIR /app
 RUN corepack enable

@@ -187,10 +187,10 @@ export function recordOutcome(
 }
 
 /**
- * Known datacenter/cloud ASNs and hostname hints. The data plane refuses to poll
- * (or loudly warns) when it detects it is running on cloud infra — because that
- * is the #1 account-ban vector (ASN / impossible-travel mismatch, DESIGN.md §1).
- * This is a best-effort heuristic, not a guarantee.
+ * Name fragments of known datacenter/cloud providers. The agent refuses to poll
+ * (or warns, if overridden) when its public IP belongs to one of them: requests
+ * from a cloud network that doesn't match where the user logged in are the risk
+ * DESIGN.md §1 is about. Matching names is a heuristic, not a guarantee.
  */
 export const CLOUD_ASN_HINTS: ReadonlyArray<string> = [
   "amazon",
