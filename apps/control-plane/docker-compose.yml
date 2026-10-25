@@ -1,4 +1,4 @@
-# VisaLark control-plane — optional self-host (e.g. Oracle Cloud Always Free VM).
+# VisaLark control-plane — optional, self-hosted.
 #
 #   cp .env.example .env   # then set DASHBOARD_TOKEN
 #   docker compose up -d

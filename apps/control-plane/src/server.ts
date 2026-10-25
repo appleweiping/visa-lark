@@ -1,8 +1,8 @@
 /**
  * Process entrypoint. Wires config + SQLite store into the Fastify app and
- * listens. The control plane is OPTIONAL infrastructure (self-host on an Oracle
- * Cloud Always Free VM). It holds ZERO visa credentials and never polls the
- * visa site — it only relays notifications and stores availability history.
+ * listens. The control plane is optional and self-hosted. It holds no visa
+ * credentials and never polls the visa site; it only relays notifications and
+ * stores availability history.
  *
  * Recommended ingress: Cloudflare Tunnel (no inbound ports, free TLS) — see
  * docker-compose.yml + README. Do NOT expose this directly without auth.
@@ -17,7 +17,7 @@ async function main(): Promise<void> {
   const app = buildApp({ config, store });
 
   if (!config.dashboardToken) {
-    // Loud warning: protected routes fail-closed (503) until a token is set.
+    // Protected routes return 503 until a token is set.
     console.warn(
       "[visalark] WARNING: DASHBOARD_TOKEN is not set. /api/notify, /api/observations " +
         "and /api/heatmap are DISABLED (503) until you set it. Only /api/health is public.",

@@ -88,7 +88,7 @@ describe("control-plane API", () => {
     });
   });
 
-  describe("fail-closed when no token configured", () => {
+  describe("returns 503 when no token is configured", () => {
     it("returns 503 for protected routes and 200 for health", async () => {
       const s2 = new Store(":memory:");
       const noTokenApp = buildApp({

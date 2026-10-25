@@ -60,7 +60,7 @@ export function buildApp(opts: BuildOptions): FastifyInstance {
     if (url === "/api/health") return; // health is public
 
     // If no token is configured, refuse to serve protected routes at all
-    // (fail-closed: an unconfigured relay must not be an open relay).
+    // (an unconfigured relay must not be an open relay).
     if (!config.dashboardToken) {
       return reply.code(503).send({
         error: "unconfigured",

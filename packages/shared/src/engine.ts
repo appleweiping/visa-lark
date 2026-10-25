@@ -60,7 +60,7 @@ export interface EngineDeps {
   getCurrentAppointment: () => CurrentAppointment;
   /** Auto-book bookkeeping for interlocks. */
   getAutoBookContext: () => Omit<AutoBookContext, "current">;
-  /** Persist a slot observation (for heatmap / release-pattern learning). */
+  /** Persist a slot observation (for the control plane's heatmap). */
   onObservation?: (dates: { date: string; facilityId: string }[], at: number) => void;
   /** Called when a booking is actually made (host updates counts + current appt). */
   onBooked?: (result: BookingResult) => void;
@@ -217,7 +217,7 @@ export async function runMonitorOnce(
     };
   }
 
-  // 3) Record observation for heatmap / release-pattern learning.
+  // 3) Record observation for the control plane's heatmap.
   deps.onObservation?.(day.dates, now);
 
   // 4) Find earliest acceptable slot (filters applied).

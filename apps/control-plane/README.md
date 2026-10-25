@@ -1,15 +1,14 @@
 # @visa-lark/control-plane
 
-The **optional** self-hosted control plane for [VisaLark](../../DESIGN.md). Run it on a
-free VM (Oracle Cloud Always Free works great) to get a cross-device availability
-history, a calendar heatmap with "best time to check" intelligence, and a
-notification relay so your channel secrets live on your server instead of in a
-browser page.
+An optional server for [VisaLark](../../README.md) that you host yourself, on any Linux machine
+or small VM with Docker. It keeps a history of the appointment dates your monitors have seen,
+builds a day-of-week × hour heatmap of when new dates first showed up, and can relay
+notifications so your Bark/Telegram/webhook secrets sit on your server instead of in a browser
+page.
 
-> **It holds ZERO visa credentials and never talks to `usvisa-info`.** It does not
-> poll the visa site. All visa-touching code lives in the data plane (the browser
-> extension / local agent). This plane is pure convenience. See
-> [DESIGN.md §2](../../DESIGN.md) for the two-plane architecture and why it matters.
+It holds no visa credentials and never contacts `usvisa-info`. Only the browser extension and the
+local agent talk to the visa site; this service just receives the dates they saw. See
+[DESIGN.md §2](../../DESIGN.md).
 
 ## What it does
 
@@ -19,28 +18,27 @@ browser page.
 | `POST /api/notify` | bearer | Fan out a message to `@visa-lark/notify` channels (Bark / Server酱 / Telegram / Webhook). Channel secrets stay server-side. |
 | `POST /api/observations` | bearer | Store slot observations `{ monitorId, dates:[{date,facilityId}], at }` pushed by the data plane. |
 | `GET  /api/observations?monitorId=&facilityId=` | bearer | Availability history (newest first). |
-| `GET  /api/heatmap?facilityId=&tz=` | bearer | Aggregated 7×24 calendar heatmap + **"best time to check"** ranking (release-pattern learning). `tz` = minutes offset from UTC for local bucketing (e.g. `480` for Beijing). |
+| `GET  /api/heatmap?facilityId=&tz=` | bearer | 7×24 heatmap of observations and first sightings, plus the hours ranked by first sightings. `tz` = minutes offset from UTC for local bucketing (e.g. `480` for Beijing). |
 
-### The "best time to check" feature
+### The heatmap
 
-`GET /api/heatmap` runs a **pure** aggregation (`src/heatmap.ts`,
-`computeHeatmap`) over your own observation history. It separates two signals:
+`GET /api/heatmap` aggregates your own observation history (`computeHeatmap` in
+`src/heatmap.ts`) into two counts per (day-of-week × hour) bucket:
 
-- **observations** — how often the monitor *saw* anything in each (day-of-week ×
-  hour) bucket.
-- **releases** — the *first* time each distinct `(facilityId, appointment-date)`
-  slot was ever seen ≈ the moment a slot opened up.
+- **observations**: how often a monitor saw any available date in that bucket.
+- **releases**: the first time each distinct `(facilityId, appointment-date)` pair was seen,
+  which is roughly when that slot opened up.
 
-Ranking hours by **releases** tells you which hour-of-day historically sees the
-most new slots. Checking then both raises your hit-rate **and** lets you poll
-less the rest of the day, in line with the polling limits in DESIGN.md §3.5.
+`bestHours` lists the hours of the day by release count, so you can see when new dates have
+tended to appear for you. It only reflects what your own monitors happened to see while they
+were running, so with a few days of data it is a rough hint, not a prediction.
 
 ## Auth & safety
 
-- **Single-tenant.** One `DASHBOARD_TOKEN` (bearer) guards every `/api` route
+- **One user.** One `DASHBOARD_TOKEN` (bearer) guards every `/api` route
   except `/api/health`. Wrong/missing token → `401`.
-- **Fail-closed.** If `DASHBOARD_TOKEN` is unset, protected routes return `503`
-  (an unconfigured relay must never be an open relay).
+- **Returns 503 until `DASHBOARD_TOKEN` is set**, so a freshly started server
+  is never an open notification relay.
 - **No secrets in logs.** The `event_log` audit table records channel *types*
   and delivery counts only — never keys, tokens, or cookies.
 - Constant-time token comparison to avoid timing leaks.

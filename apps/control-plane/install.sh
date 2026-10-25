@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # VisaLark control-plane one-line installer.
-# Self-host on an Oracle Cloud Always Free VM (or any Linux box with Docker).
+# For any Linux machine or small VM with Docker.
 #
 #   curl -fsSL https://raw.githubusercontent.com/appleweiping/visa-lark/master/apps/control-plane/install.sh | bash
 #

@@ -10,9 +10,8 @@
  * Two distinct signals are derived:
  *   - `observations`: raw density (how often we saw *anything* in a bucket).
  *   - `releases`: the first time a given (facilityId, appointment-date) pair is
- *     ever seen. A release ≈ a slot opening up. "Best time to check" ranks
- *     hour-of-day by release count, which both raises hit-rate AND lets the
- *     user poll less (aligns effectiveness with the account-safety laws).
+ *     ever seen. A release ≈ a slot opening up. `bestHours` ranks
+ *     hour-of-day by release count.
  *
  * Bucketing is done in the user's local wall-clock via `tzOffsetMinutes`
  * (default 0 = UTC) so the result is deterministic and timezone-correct.

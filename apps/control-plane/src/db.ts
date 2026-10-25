@@ -3,7 +3,7 @@
  *
  * Tables (see DESIGN.md §8):
  *   observation(id, monitor_id, facility_id, date, observed_at)
- *     — time-series of seen availability → heatmap / release-pattern model.
+ *     — time-series of seen availability, the input to the heatmap.
  *   event_log(id, kind, payload_json, created_at)
  *     — relay/notify audit trail. NEVER stores channel secrets or visa creds.
  *
