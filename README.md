@@ -36,13 +36,13 @@ It will not win slots that disappear within seconds of being released, and it do
 
 ### Browser extension (recommended)
 
-1. Download `visalark-extension-<version>.zip` from [Releases](https://github.com/appleweiping/visa-lark/releases) (built by CI from the tagged commit) and unzip it, or build it yourself:
+1. Download `visalark-extension-<version>.zip` from the [latest release](https://github.com/appleweiping/visa-lark/releases/latest) (built by CI from the tagged commit) and unzip it, or build it yourself:
    ```bash
    pnpm install
    pnpm build:packages
    pnpm --filter @visa-lark/extension build      # output: apps/extension/dist
    ```
-2. Open `chrome://extensions` (or `edge://extensions`), enable Developer mode, click **Load unpacked** and choose the folder.
+2. Open `chrome://extensions` (or `edge://extensions`), enable Developer mode, click **Load unpacked** and choose the unzipped folder (or `apps/extension/dist` if you built it).
 3. Log in to `ais.usvisa-info.com` yourself and open the reschedule page.
 4. Click the VisaLark icon → **Sync session**. It reads the consulate and schedule id from the page URL.
 5. In Settings, add a monitor (consulates, visa type, date window, mode) and at least one notification channel, then click **发送测试通知 / send test**. The browser asks for access to the push services you configured; allow it, or the alerts cannot leave the browser. The page shows which channels delivered.

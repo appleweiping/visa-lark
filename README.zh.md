@@ -36,13 +36,13 @@ VisaLark 用你自己已经登录的浏览器会话，定时查看 `ais.usvisa-i
 
 ### 浏览器扩展（推荐）
 
-1. 从 [Releases](https://github.com/appleweiping/visa-lark/releases) 下载 `visalark-extension-<版本>.zip`（由 CI 从打 tag 的提交构建）并解压，或者自己构建：
+1. 从 [最新 Release](https://github.com/appleweiping/visa-lark/releases/latest) 下载 `visalark-extension-<版本>.zip`（由 CI 从打 tag 的提交构建）并解压，或者自己构建：
    ```bash
    pnpm install
    pnpm build:packages
    pnpm --filter @visa-lark/extension build      # 输出在 apps/extension/dist
    ```
-2. 打开 `chrome://extensions`（或 `edge://extensions`），开启开发者模式，点“加载已解压的扩展程序”，选中该文件夹。
+2. 打开 `chrome://extensions`（或 `edge://extensions`），开启开发者模式，点“加载已解压的扩展程序”，选中解压出来的文件夹（自己构建的话选 `apps/extension/dist`）。
 3. 自己登录 `ais.usvisa-info.com`，打开改期页面。
 4. 点 VisaLark 图标 →“同步当前会话”，它会从页面地址读出领区和行程号。
 5. 在设置里添加监控（领馆、签证类型、日期范围、模式）和至少一个推送渠道，然后点「发送测试通知」。浏览器会询问是否允许访问你配置的推送服务，选「允许」，否则推送发不出去；页面会显示每个渠道是否送达。
